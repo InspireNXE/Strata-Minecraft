@@ -1,0 +1,21 @@
+// For every library project: api, spi, core and the adapters. Javadoc runs with every doclint check, including
+// missing comments, @param, @return and @throws, and any warning fails the build. A javadoc jar is built with the
+// sources jar.
+plugins {
+    id 'strata-java'
+}
+
+java {
+    withJavadocJar()
+}
+
+tasks.named('javadoc', Javadoc) {
+    options.encoding = 'UTF-8'
+    options.addBooleanOption('Xdoclint:all', true)
+    options.addBooleanOption('Werror', true)
+}
+
+// Run javadoc with the regular checks, so `gradlew check` catches a missing doc without building jars
+tasks.named('check') {
+    dependsOn(tasks.named('javadoc'))
+}

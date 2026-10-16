@@ -3,7 +3,6 @@ package org.inspirenxe.strata.minecraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import org.inspirenxe.strata.api.geom.Rect;
-import org.inspirenxe.strata.api.text.TextMetrics;
 import org.inspirenxe.strata.spi.Capabilities;
 import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
@@ -13,22 +12,36 @@ import org.inspirenxe.strata.spi.TextInputSink;
 import java.util.Optional;
 
 /**
- * The Minecraft side of the SPI for one hosting screen. Minecraft sends key repeats itself.
+ * The Minecraft {@link Platform}, one per hosting vanilla screen.
+ *
+ * <ul>
+ *     <li>Text is measured with the screen's font through {@link MinecraftTextMetrics}.</li>
+ *     <li>The clipboard is vanilla's keyboard handler. An empty clipboard reads as empty.</li>
+ *     <li>The clock is {@link Clock#SYSTEM}.</li>
+ *     <li>Text input: since 26.3 Minecraft sends no typed characters until a text field reports focus, so starting
+ *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen.</li>
+ *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
+ *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
+ * </ul>
  */
 public final class MinecraftPlatform implements Platform {
     private static final Capabilities CAPABILITIES = new Capabilities(true);
 
     private final Minecraft minecraft;
-    private final MinecraftText text;
+    private final MinecraftTextMetrics textMetrics;
     private final Clipboard clipboard;
     private final TextInputSink textInput;
 
     /**
-     * @param listener the screen that hosts Strata; Minecraft tracks text focus per listener
+     * Creates the platform for one vanilla screen.
+     *
+     * @param minecraft the game
+     * @param textMetrics the metrics matching the screen's canvas
+     * @param listener the vanilla screen hosting Strata; Minecraft tracks text focus per listener
      */
-    public MinecraftPlatform(final Minecraft minecraft, final MinecraftText text, final GuiEventListener listener) {
+    public MinecraftPlatform(final Minecraft minecraft, final MinecraftTextMetrics textMetrics, final GuiEventListener listener) {
         this.minecraft = minecraft;
-        this.text = text;
+        this.textMetrics = textMetrics;
         this.clipboard = new Clipboard() {
             @Override
             public Optional<String> get() {
@@ -41,7 +54,6 @@ public final class MinecraftPlatform implements Platform {
                 minecraft.keyboardHandler.setClipboard(value);
             }
         };
-        // Since 26.3 Minecraft delivers no characters until a text field says it has focus
         this.textInput = new TextInputSink() {
             @Override
             public void start(final Rect caretArea) {
@@ -55,13 +67,18 @@ public final class MinecraftPlatform implements Platform {
         };
     }
 
+    /**
+     * Returns the game.
+     *
+     * @return the Minecraft instance given to the constructor
+     */
     public Minecraft minecraft() {
         return this.minecraft;
     }
 
     @Override
-    public TextMetrics textMetrics() {
-        return this.text;
+    public MinecraftTextMetrics textMetrics() {
+        return this.textMetrics;
     }
 
     @Override

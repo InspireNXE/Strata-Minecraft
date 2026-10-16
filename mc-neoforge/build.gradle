@@ -5,6 +5,8 @@ plugins {
 
 neoForge {
     version = neoforge_version
+    // The tests read the mod annotation, which needs NeoForge on the test classpath
+    addModdingDependenciesTo(sourceSets.test)
     runs {
         configureEach {
             ideName = "NeoForge ${it.name.capitalize()} (${project.path})"

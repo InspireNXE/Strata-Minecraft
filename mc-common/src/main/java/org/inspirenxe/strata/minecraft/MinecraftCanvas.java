@@ -17,32 +17,61 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Draws through {@link GuiGraphicsExtractor}. Minecraft records GUI draws and renders them later, which suits
- * Strata's canvas contract.
+ * The Minecraft {@link Canvas}: records Strata's drawing into vanilla's {@link GuiGraphicsExtractor}, which renders
+ * it later in the frame.
  *
- * <p>Sprites come from the {@code minecraft:gui} atlas, which reads {@code textures/gui/sprites}. A sprite's
- * {@code .png.mcmeta} decides its nine-slice borders, so {@link #nineSlice} ignores the border argument. Minecraft
- * draws in whole GUI pixels, so coordinates are rounded here.</p>
+ * <p>How it meets the canvas contract on Minecraft 26.3:</p>
+ * <ul>
+ *     <li>Minecraft draws in whole GUI pixels. Fills and clips round outward (left and top down, right and bottom
+ *     up), so a fractional rectangle is never cut short; text positions round to the nearest pixel.</li>
+ *     <li>Sprites come from the {@code minecraft:gui} atlas, which reads {@code assets/<namespace>/textures/gui/
+ *     sprites/<path>.png}, and draw with vanilla's {@code GUI_TEXTURED} pipeline. The tint is passed as vanilla's
+ *     sprite color.</li>
+ *     <li>A nine-slice draws as a plain sprite: vanilla applies the scaling in the sprite's {@code .png.mcmeta}
+ *     ({@code "type": "nine_slice"}), and the border argument is ignored. A missing sprite draws vanilla's
+ *     missing-texture pattern.</li>
+ *     <li>Text draws as a chat component in the player's font, with vanilla's bold, italic, underline,
+ *     strikethrough and shadow.</li>
+ *     <li>Clips use vanilla's scissor stack, which intersects nested clips and follows the pose. Translations push
+ *     and pop the pose matrix.</li>
+ *     <li>{@link #nextLayer()} starts a new vanilla stratum, so later screens draw over blur and earlier
+ *     layers.</li>
+ *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
+ * </ul>
+ *
+ * <p>Call {@link #begin(GuiGraphicsExtractor)} at the start of every frame. Use it on the render thread only.</p>
  */
 public final class MinecraftCanvas implements Canvas {
     private final Map<SpriteId, Identifier> identifiers;
-    private final MinecraftText text;
+    private final MinecraftTextMetrics textMetrics;
     private GuiGraphicsExtractor graphics;
 
+    /**
+     * Creates a canvas.
+     *
+     * @param font the font text is drawn and measured with, usually the screen's
+     */
     public MinecraftCanvas(final Font font) {
         this.identifiers = new HashMap<>();
-        this.text = new MinecraftText(font);
+        this.textMetrics = new MinecraftTextMetrics(font);
     }
 
     /**
      * Points the canvas at this frame's graphics.
+     *
+     * @param graphics the graphics vanilla passed to the screen's {@code extractRenderState}
      */
     public void begin(final GuiGraphicsExtractor graphics) {
         this.graphics = graphics;
     }
 
-    public MinecraftText text() {
-        return this.text;
+    /**
+     * Returns the text metrics matching what this canvas draws.
+     *
+     * @return the metrics, for the platform
+     */
+    public MinecraftTextMetrics textMetrics() {
+        return this.textMetrics;
     }
 
     @Override
@@ -75,7 +104,7 @@ public final class MinecraftCanvas implements Canvas {
         if ((span.style().color() >>> 24) == 0 || span.text().isEmpty()) {
             return;
         }
-        this.graphics.text(this.text.font(), this.text.component(span), Math.round(x), Math.round(y),
+        this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x), Math.round(y),
                 span.style().color(), span.style().shadow());
     }
 
@@ -114,7 +143,13 @@ public final class MinecraftCanvas implements Canvas {
         return this.identifiers.computeIfAbsent(sprite, id -> Identifier.fromNamespaceAndPath(id.namespace(), id.path()));
     }
 
-    private static CursorType cursorType(final CursorKind cursor) {
+    /**
+     * Maps a Strata cursor to vanilla's.
+     *
+     * @param cursor the Strata cursor
+     * @return the vanilla cursor
+     */
+    static CursorType cursorType(final CursorKind cursor) {
         return switch (cursor) {
             case ARROW -> CursorTypes.ARROW;
             case TEXT -> CursorTypes.IBEAM;

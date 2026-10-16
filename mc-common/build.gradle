@@ -1,5 +1,6 @@
 plugins {
     id 'strata-shared'
+    id 'strata-documented'
     id 'net.neoforged.moddev'
 }
 
@@ -7,6 +8,8 @@ description = 'Minecraft 26.3 adapter for Strata, written against vanilla only.'
 
 neoForge {
     neoFormVersion = neo_form_version
+    // The tests run against the real vanilla classes
+    addModdingDependenciesTo(sourceSets.test)
 }
 
 dependencies {
@@ -14,4 +17,14 @@ dependencies {
     compileOnly(project(':api'))
     compileOnly(project(':spi'))
     compileOnly(project(':core'))
+
+    testImplementation(project(':api'))
+    testImplementation(project(':spi'))
+    testImplementation(project(':core'))
+    testImplementation('org.mockito:mockito-core:5.24.0')
+}
+
+tasks.named('test', Test) {
+    // Mockito attaches its agent at runtime; allow it explicitly instead of relying on the JDK's warning path
+    jvmArgs('-XX:+EnableDynamicAgentLoading')
 }

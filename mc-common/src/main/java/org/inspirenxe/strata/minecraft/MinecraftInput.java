@@ -6,16 +6,30 @@ import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.Modifier;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
+import org.inspirenxe.strata.api.input.ScrollKind;
 
 /**
- * Maps Minecraft 26.3 input codes to Strata's. Since 26.3 these are SDL scancodes, so everything goes through the
- * {@link InputConstants} names and never through raw numbers.
+ * Maps Minecraft 26.3 input to Strata's input types.
+ *
+ * <p>Since 26.3 Minecraft's key values are SDL scancodes, which name physical key positions, so every mapping goes
+ * through the {@link InputConstants} names and never through raw numbers. Scancodes Strata has no key for (F13 to
+ * F24, the keypad comma) map to {@link Key#UNKNOWN}.</p>
+ *
+ * <p>On macOS Minecraft treats Command as the edit-shortcut modifier. Strata reports Command as
+ * {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}, so Strata's text box shortcuts use Control there
+ * too.</p>
  */
 public final class MinecraftInput {
 
     private MinecraftInput() {
     }
 
+    /**
+     * Reads the modifiers of a Minecraft input event.
+     *
+     * @param input a key or mouse event
+     * @return the held modifiers
+     */
     public static Modifiers modifiers(final InputWithModifiers input) {
         Modifiers modifiers = Modifiers.NONE;
         if (input.hasShiftDown()) {
@@ -33,6 +47,35 @@ public final class MinecraftInput {
         return modifiers;
     }
 
+    /**
+     * Converts Minecraft's horizontal scroll to Strata's direction. Minecraft passes the engine's value, positive
+     * toward the right; Strata counts positive toward the left.
+     *
+     * @param scrollX the horizontal amount Minecraft reported
+     * @return the amount in Strata's direction
+     */
+    public static float scrollX(final double scrollX) {
+        return (float) -scrollX;
+    }
+
+    /**
+     * Guesses the scroll device from the amounts: whole numbers come from a notched wheel, fractions from a trackpad
+     * or smooth wheel (or a wheel sensitivity other than 1).
+     *
+     * @param scrollX the horizontal amount Minecraft reported
+     * @param scrollY the vertical amount Minecraft reported
+     * @return the scroll kind
+     */
+    public static ScrollKind scrollKind(final double scrollX, final double scrollY) {
+        return scrollX == Math.rint(scrollX) && scrollY == Math.rint(scrollY) ? ScrollKind.WHEEL : ScrollKind.PRECISE;
+    }
+
+    /**
+     * Maps a Minecraft mouse button.
+     *
+     * @param button the button Minecraft reported
+     * @return the button; buttons 4 and 5 are back and forward, anything else unknown
+     */
     public static MouseButton button(final int button) {
         return switch (button) {
             case InputConstants.MOUSE_BUTTON_LEFT -> MouseButton.LEFT;
@@ -44,6 +87,12 @@ public final class MinecraftInput {
         };
     }
 
+    /**
+     * Maps a Minecraft key, given as the scancode from {@code KeyEvent.key()}.
+     *
+     * @param scancode the SDL scancode
+     * @return the key, or {@link Key#UNKNOWN}
+     */
     public static Key key(final int scancode) {
         return switch (scancode) {
             case InputConstants.KEY_A -> Key.A;
