@@ -40,3 +40,5 @@ include('sandbox')
 include('mc-common')
 include('mc-neoforge')
 include('mc-fabric')
+// The code the documentation site shows, compiled so it stays correct
+include('docs-examples')

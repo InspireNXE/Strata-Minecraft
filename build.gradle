@@ -4,3 +4,15 @@ plugins {
     // see https://projects.neoforged.net/neoforged/moddevgradle
     id 'net.neoforged.moddev' version '2.0.148' apply false
 }
+
+// Copies each library's Javadoc into the documentation site, which links to docs/javadoc/<project>/
+tasks.register('siteJavadoc', Sync) {
+    group = 'documentation'
+    description = 'Copies the Javadoc of every library project into docs/javadoc for the documentation site.'
+    ['api', 'spi', 'core', 'canvas-swing', 'mc-common'].each { name ->
+        from(project(":${name}").tasks.named('javadoc')) {
+            into(name)
+        }
+    }
+    into(layout.projectDirectory.dir('docs/javadoc'))
+}

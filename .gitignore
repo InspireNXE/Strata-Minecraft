@@ -6,6 +6,7 @@ build/
 # Loader dev runs
 runs/
 run/
+logs/
 
 # IDEs
 .idea/
@@ -20,3 +21,7 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+# Documentation site: generated Javadoc and the built site
+docs/javadoc/
+site/
