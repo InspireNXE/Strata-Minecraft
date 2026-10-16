@@ -1,0 +1,42 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven {
+            name = 'NeoForged'
+            url = uri('https://maven.neoforged.net/releases')
+        }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'Fabric'
+                    url = uri('https://maven.fabricmc.net')
+                }
+            }
+            filter {
+                includeGroupAndSubgroups('net.fabricmc')
+            }
+        }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'strata'
+includeBuild('build-logic')
+
+// What developers compile against
+include('api')
+// What engine adapters implement and drive
+include('spi')
+// The implementation behind both
+include('core')
+// Java2D adapter and the sandbox app that runs on it
+include('canvas-swing')
+include('sandbox')
+// Minecraft adapter: shared vanilla code, plus a thin layer per loader
+include('mc-common')
+include('mc-neoforge')
+include('mc-fabric')

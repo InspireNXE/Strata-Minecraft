@@ -1,0 +1,17 @@
+plugins {
+    id 'strata-shared'
+    id 'net.neoforged.moddev'
+}
+
+description = 'Minecraft 26.3 adapter for Strata, written against vanilla only.'
+
+neoForge {
+    neoFormVersion = neo_form_version
+}
+
+dependencies {
+    // compileOnly: each loader compiles these sources itself, so they must not leak in transitively
+    compileOnly(project(':api'))
+    compileOnly(project(':spi'))
+    compileOnly(project(':core'))
+}

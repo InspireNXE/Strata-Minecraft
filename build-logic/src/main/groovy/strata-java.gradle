@@ -1,0 +1,84 @@
+// Every Strata project: Java 25, JUnit, sources jar, shared jar metadata
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "strata-${project.name}"
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    withSourcesJar()
+}
+
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:${junit_version}"))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile'])
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+}
+
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_strata" }
+    }
+    manifest {
+        attributes([
+                'Implementation-Title'  : "strata-${project.name}",
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : mod_author
+        ])
+    }
+}
+
+processResources {
+    var expandProps = [
+            'version'                      : version,
+            'minecraft_version'            : minecraft_version,
+            'minecraft_version_range'      : minecraft_version_range,
+            'fabric_loader_version'        : fabric_loader_version,
+            'mod_id'                       : mod_id,
+            'mod_name'                     : mod_name,
+            'mod_author'                   : mod_author,
+            'license'                      : license,
+            'description'                  : project.description ?: rootProject.property('description'),
+            'neoforge_version'             : neoforge_version,
+            'neoforge_loader_version_range': neoforge_loader_version_range,
+            'java_version'                 : java_version
+    ]
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand expandProps
+    }
+
+    filesMatching(['fabric.mod.json', 'pack.mcmeta']) {
+        expand expandProps.collectEntries { key, value ->
+            [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
+        }
+    }
+
+    inputs.properties(expandProps)
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}
