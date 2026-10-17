@@ -2,13 +2,18 @@ package org.inspirenxe.strata.examples.minecraft;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.widget.Button;
+import org.inspirenxe.strata.api.widget.Image;
 import org.inspirenxe.strata.examples.quickstart.SettingsScreen;
 import org.inspirenxe.strata.minecraft.MinecraftThemes;
+import org.inspirenxe.strata.minecraft.MinecraftTooltips;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals;
 import org.inspirenxe.strata.minecraft.StrataScreen;
 
 /**
@@ -82,5 +87,18 @@ public final class MinecraftExamples {
                 .build();
         // --8<-- [end:theme]
         return theme;
+    }
+
+    static Image itemIcon(final ComponentFactory factory, final ItemStack stack) {
+        // --8<-- [start:item]
+        // Drawn by vanilla's item renderer with the count and damage bar, and vanilla's tooltip lines on hover
+        final Image icon = factory.image(MinecraftVisuals.item(stack));
+        icon.setTooltip(MinecraftTooltips.item(stack));
+
+        // Twice the size, without decorations
+        final Image large = factory.image(MinecraftVisuals.item(stack, MinecraftVisuals.ItemDecorations.NONE))
+                .setImageSize(32f, 32f);
+        // --8<-- [end:item]
+        return large;
     }
 }

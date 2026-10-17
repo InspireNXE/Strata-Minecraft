@@ -1,30 +1,43 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.component.DataComponentInitializers;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.inspirenxe.strata.api.component.CursorKind;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.geom.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.joml.Matrix3x2f;
 import org.joml.Matrix3x2fStack;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,6 +52,15 @@ class MinecraftCanvasTest {
     private Font font;
     private Matrix3x2fStack pose;
     private MinecraftCanvas canvas;
+
+    @BeforeAll
+    static void bootstrap() {
+        // Item stacks need vanilla's registries and their items' default components, which a world load binds
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(VanillaRegistries.createWorldLookup())
+                .forEach(DataComponentInitializers.PendingComponents::apply);
+    }
 
     @BeforeEach
     void setUp() {
@@ -151,5 +173,88 @@ class MinecraftCanvasTest {
         final ArgumentCaptor<FormattedText> measured = ArgumentCaptor.forClass(FormattedText.class);
         verify(this.font).width(measured.capture());
         assertEquals("abc", measured.getValue().getString());
+    }
+
+    @Test
+    void itemVisualsDrawWithVanillaItemRenderingScaledToTheRect() {
+        final ItemStack stack = new ItemStack(Items.DIAMOND, 3);
+        final Matrix3x2f[] drawnWith = new Matrix3x2f[1];
+        doAnswer(invocation -> drawnWith[0] = new Matrix3x2f(this.pose)).when(this.graphics).item(any(ItemStack.class), anyInt(), anyInt());
+
+        this.canvas.visual(MinecraftVisuals.item(stack), new Rect(10.4f, 20f, 32f, 32f), 0xFFFFFFFF);
+
+        final ArgumentCaptor<ItemStack> drawn = ArgumentCaptor.forClass(ItemStack.class);
+        verify(this.graphics).item(drawn.capture(), eq(0), eq(0));
+        assertTrue(ItemStack.matches(stack, drawn.getValue()), "the visual's copy of the stack is drawn");
+        verify(this.graphics).itemDecorations(this.font, drawn.getValue(), 0, 0);
+        verify(this.graphics, never()).fill(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        assertEquals(10f, drawnWith[0].m20(), "x rounds to a whole pixel");
+        assertEquals(20f, drawnWith[0].m21());
+        assertEquals(2f, drawnWith[0].m00(), "scaled from 16 to 32 wide");
+        assertEquals(2f, drawnWith[0].m11(), "scaled from 16 to 32 high");
+        assertTrue(this.pose.equals(new Matrix3x2f()), "the pose is restored");
+    }
+
+    @Test
+    void itemVisualsCanSkipDecorations() {
+        this.canvas.visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.NONE), new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+
+        verify(this.graphics).item(any(ItemStack.class), eq(0), eq(0));
+        verify(this.graphics, never()).itemDecorations(any(Font.class), any(ItemStack.class), anyInt(), anyInt());
+        verify(this.graphics, never()).text(any(Font.class), anyString(), anyInt(), anyInt(), anyInt(), anyBoolean());
+    }
+
+    @Test
+    void theCountAloneDrawsWhereVanillaDrawsIt() {
+        when(this.font.width("12")).thenReturn(11);
+
+        this.canvas.visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 12), new ItemDecorations(true, false)),
+                new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+
+        verify(this.graphics).text(this.font, "12", 6, 9, 0xFFFFFFFF, true);
+        verify(this.graphics, never()).itemDecorations(any(Font.class), any(ItemStack.class), anyInt(), anyInt());
+    }
+
+    @Test
+    void theDamageBarAloneDrawsWhereVanillaDrawsIt() {
+        final ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+        sword.setDamageValue(sword.getMaxDamage() / 2);
+
+        this.canvas.visual(MinecraftVisuals.item(sword, new ItemDecorations(false, true)), new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+
+        verify(this.graphics).fill(2, 13, 15, 15, 0xFF000000);
+        verify(this.graphics).fill(eq(2), eq(13), eq(2 + sword.getBarWidth()), eq(14), anyInt());
+    }
+
+    @Test
+    void emptyStacksAndTransparentTintsDrawNothing() {
+        this.canvas.visual(MinecraftVisuals.item(ItemStack.EMPTY), new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+        this.canvas.visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND)), new Rect(0, 0, 16, 16), 0x00FFFFFF);
+
+        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt());
+    }
+
+    @Test
+    void otherVisualsDrawThePlaceholder() {
+        final Visual foreign = () -> MinecraftVisuals.ITEM_SIZE;
+
+        this.canvas.visual(foreign, new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+
+        verify(this.graphics).fill(0, 0, 16, 16, MinecraftCanvas.MISSING_VISUAL_COLOR);
+        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt());
+    }
+
+    @Test
+    void itemVisualsCopyTheStackAndCompareByMatches() {
+        final ItemStack stack = new ItemStack(Items.DIAMOND, 3);
+        final Visual visual = MinecraftVisuals.item(stack);
+        stack.setCount(5);
+
+        assertEquals(MinecraftVisuals.ITEM_SIZE, visual.size());
+        assertEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3)), visual, "a later change to the stack does not show");
+        assertEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3)).hashCode(), visual.hashCode());
+        assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 5)), visual, "counts differ");
+        assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.EMERALD, 3)), visual, "items differ");
+        assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.NONE), visual, "decorations differ");
     }
 }

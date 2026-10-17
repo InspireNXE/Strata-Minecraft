@@ -6,11 +6,16 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.component.CursorKind;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.geom.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 import org.inspirenxe.strata.spi.Canvas;
 
 import java.util.HashMap;
@@ -32,8 +37,9 @@ import java.util.Map;
  *     missing-texture pattern.</li>
  *     <li>Text draws as a chat component in the player's font, with vanilla's bold, italic, underline,
  *     strikethrough and shadow.</li>
- *     <li>Clips use vanilla's scissor stack, which intersects nested clips and follows the pose. Translations push
- *     and pop the pose matrix.</li>
+ *     <li>Clips use vanilla's scissor stack, which intersects nested clips and follows the pose. Translations and
+ *     scales push and pop the pose matrix.</li>
+ *     <li>Visuals draw as a magenta placeholder until the adapter makes visuals of its own.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so later screens draw over blur and earlier
  *     layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
@@ -42,6 +48,11 @@ import java.util.Map;
  * <p>Call {@link #begin(GuiGraphicsExtractor)} at the start of every frame. Use it on the render thread only.</p>
  */
 public final class MinecraftCanvas implements Canvas {
+    /**
+     * What a visual this canvas cannot draw shows as.
+     */
+    public static final int MISSING_VISUAL_COLOR = 0xFFFF00FF;
+
     private final Map<SpriteId, Identifier> identifiers;
     private final MinecraftTextMetrics textMetrics;
     private GuiGraphicsExtractor graphics;
@@ -125,8 +136,51 @@ public final class MinecraftCanvas implements Canvas {
     }
 
     @Override
+    public void pushScale(final float scale) {
+        this.graphics.pose().pushMatrix();
+        this.graphics.pose().scale(scale);
+    }
+
+    @Override
     public void popTransform() {
         this.graphics.pose().popMatrix();
+    }
+
+    @Override
+    public void visual(final Visual visual, final Rect rect, final int tint) {
+        if (!(visual instanceof ItemVisual(final ItemStack stack, final ItemDecorations decorations))) {
+            this.fill(rect, MISSING_VISUAL_COLOR);
+            return;
+        }
+        if ((tint >>> 24) == 0 || stack.isEmpty() || rect.width() <= 0f || rect.height() <= 0f) {
+            return;
+        }
+        this.graphics.pose().pushMatrix();
+        try {
+            this.graphics.pose().translate(Math.round(rect.x()), Math.round(rect.y()));
+            this.graphics.pose().scale(rect.width() / MinecraftVisuals.ITEM_SIZE.width(),
+                    rect.height() / MinecraftVisuals.ITEM_SIZE.height());
+            this.graphics.item(stack, 0, 0);
+            this.itemDecorations(stack, decorations);
+        } finally {
+            this.graphics.pose().popMatrix();
+        }
+    }
+
+    private void itemDecorations(final ItemStack stack, final ItemDecorations decorations) {
+        if (decorations.count() && decorations.damageBar()) {
+            this.graphics.itemDecorations(this.textMetrics.font(), stack, 0, 0);
+            return;
+        }
+        // The same positions and colors as vanilla's private itemBar and itemCount
+        if (decorations.damageBar() && stack.isBarVisible()) {
+            this.graphics.fill(2, 13, 15, 15, 0xFF000000);
+            this.graphics.fill(2, 13, 2 + stack.getBarWidth(), 14, ARGB.opaque(stack.getBarColor()));
+        }
+        if (decorations.count() && stack.getCount() != 1) {
+            final String count = String.valueOf(stack.getCount());
+            this.graphics.text(this.textMetrics.font(), count, 17 - this.textMetrics.font().width(count), 9, 0xFFFFFFFF, true);
+        }
     }
 
     @Override

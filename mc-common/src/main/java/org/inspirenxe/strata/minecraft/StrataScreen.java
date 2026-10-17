@@ -56,7 +56,6 @@ public class StrataScreen extends Screen {
      * @param title the vanilla title, used for narration
      * @param content the Strata screen to show
      * @param theme the theme for its components, for example {@link MinecraftThemes#vanilla()}
-     * @throws NullPointerException if {@code content} or {@code theme} is null
      */
     public StrataScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content, final Theme theme) {
         super(title);

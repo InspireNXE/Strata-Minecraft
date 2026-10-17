@@ -24,7 +24,7 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = 'strata'
+rootProject.name = 'Strata'
 includeBuild('build-logic')
 
 // What developers compile against
