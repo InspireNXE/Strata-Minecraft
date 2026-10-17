@@ -24,21 +24,21 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = 'Strata'
+rootProject.name = 'Strata-Minecraft'
 includeBuild('build-logic')
 
-// What developers compile against
-include('api')
-// What engine adapters implement and drive
-include('spi')
-// The implementation behind both
-include('core')
-// Java2D adapter and the sandbox app that runs on it
-include('canvas-swing')
-include('sandbox')
-// Minecraft adapter: shared vanilla code, plus a thin layer per loader
-include('mc-common')
-include('mc-neoforge')
-include('mc-fabric')
-// The code the documentation site shows, compiled so it stays correct
+// Strata itself, built from the sibling checkout until it is published
+includeBuild('../Strata') {
+    dependencySubstitution {
+        ['api', 'spi', 'core'].each { name ->
+            substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+        }
+    }
+}
+
+// Shared vanilla code, plus a thin layer per loader
+include('common')
+include('neoforge')
+include('fabric')
+// The code the documentation shows, compiled so it stays correct
 include('docs-examples')

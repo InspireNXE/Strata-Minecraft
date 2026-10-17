@@ -1,9 +1,8 @@
-// mc-neoforge and mc-fabric: compile the api, spi, core and mc-common sources into the loader's own jar
+// neoforge and fabric: compile the common sources into the loader's own jar. Each loader's build file puts Strata on
+// the classpath and nests its jars in the mod jar its own way.
 plugins {
-    id 'strata-java'
+    id 'strata-mc-java'
 }
-
-def sharedProjects = [':api', ':spi', ':core', ':mc-common']
 
 configurations {
     commonJava {
@@ -16,15 +15,13 @@ configurations {
 
 dependencies {
     def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
-    sharedProjects.each { path ->
-        compileOnly(project(path)) {
-            attributes {
-                attribute(loaderAttribute, 'common')
-            }
+    compileOnly(project(':common')) {
+        attributes {
+            attribute(loaderAttribute, 'common')
         }
-        commonJava(project(path: path, configuration: 'commonJava'))
-        commonResources(project(path: path, configuration: 'commonResources'))
     }
+    commonJava(project(path: ':common', configuration: 'commonJava'))
+    commonResources(project(path: ':common', configuration: 'commonResources'))
 }
 
 tasks.named('compileJava', JavaCompile) {

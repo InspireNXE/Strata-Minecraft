@@ -1,6 +1,13 @@
 plugins {
-    id 'strata-loader'
+    id 'strata-mc-loader'
     id 'net.neoforged.moddev'
+}
+
+dependencies {
+    // Strata ships nested in the mod jar
+    ['api', 'spi', 'core'].each { name ->
+        jarJar(implementation("org.inspirenxe:strata-${name}:${strata_version}"))
+    }
 }
 
 neoForge {

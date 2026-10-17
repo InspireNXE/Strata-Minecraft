@@ -1,11 +1,11 @@
-// Every Strata project: Java 25, JUnit, sources jar, shared jar metadata
+// Every Strata-Minecraft project: Java 25, JUnit, sources jar, shared jar metadata
 plugins {
     id 'java-library'
     id 'maven-publish'
 }
 
 base {
-    archivesName = "strata-${project.name}"
+    archivesName = "strata-minecraft-${project.name}"
 }
 
 repositories {
@@ -38,7 +38,7 @@ tasks.withType(Jar).configureEach {
     }
     manifest {
         attributes([
-                'Implementation-Title'  : "strata-${project.name}",
+                'Implementation-Title'  : base.archivesName.get(),
                 'Implementation-Version': project.version,
                 'Implementation-Vendor' : mod_author
         ])

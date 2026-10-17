@@ -1,10 +1,18 @@
-// core and mc-common: each loader compiles their sources into its own jar, so Strata ships as one mod jar per loader.
-// Projects that need vanilla Minecraft (mc-common) apply ModDevGradle themselves,
-// since a convention plugin here cannot carry its version
 plugins {
-    id 'strata-java'
+    id 'strata-mc-java'
+    id 'strata-mc-documented'
+    id 'net.neoforged.moddev'
 }
 
+description = 'Minecraft 26.3 adapter for Strata, written against vanilla only.'
+
+neoForge {
+    neoFormVersion = neo_form_version
+    // The tests run against the real vanilla classes
+    addModdingDependenciesTo(sourceSets.test)
+}
+
+// Each loader compiles these sources into its own jar
 configurations {
     commonJava {
         canBeResolved = false
@@ -38,4 +46,17 @@ sourceSets.configureEach {
             }
         }
     }
+}
+
+dependencies {
+    // compileOnly: each loader brings Strata itself, nested in its mod jar
+    compileOnly("org.inspirenxe:strata-core:${strata_version}")
+
+    testImplementation("org.inspirenxe:strata-core:${strata_version}")
+    testImplementation('org.mockito:mockito-core:5.24.0')
+}
+
+tasks.named('test', Test) {
+    // Mockito attaches its agent at runtime; allow it explicitly instead of relying on the JDK's warning path
+    jvmArgs('-XX:+EnableDynamicAgentLoading')
 }

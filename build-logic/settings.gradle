@@ -1,0 +1,2 @@
+// Named apart from Strata's own build-logic, which the composite build also includes
+rootProject.name = 'strata-minecraft-build-logic'

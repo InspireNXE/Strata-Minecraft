@@ -2,7 +2,7 @@
 // missing comments, @param, @return and @throws, and any warning fails the build. A javadoc jar is built with the
 // sources jar.
 plugins {
-    id 'strata-java'
+    id 'strata-mc-java'
 }
 
 java {

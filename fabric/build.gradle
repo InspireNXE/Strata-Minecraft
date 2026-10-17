@@ -1,5 +1,5 @@
 plugins {
-    id 'strata-loader'
+    id 'strata-mc-loader'
     id 'net.fabricmc.fabric-loom'
 }
 
@@ -7,6 +7,11 @@ dependencies {
     minecraft("com.mojang:minecraft:${minecraft_version}")
     implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
+
+    // Strata ships nested in the mod jar
+    ['api', 'spi', 'core'].each { name ->
+        include(implementation("org.inspirenxe:strata-${name}:${strata_version}"))
+    }
 }
 
 loom {
