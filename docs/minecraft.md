@@ -24,7 +24,7 @@ In 26.3, screens are opened through `Minecraft.gui.setScreen`, not the `Minecraf
 
 The title is vanilla's screen title, which vanilla uses for narration. The code is the same on NeoForge and Fabric. Open it from whatever triggers your UI: a key mapping handler, a command, an item use, or a button on another screen. Each loader registers those differently, so see your loader's documentation for the trigger itself.
 
-`MinecraftThemes.vanilla()` draws buttons, check boxes, sliders and text boxes with vanilla's own sprites, so a screen looks like part of the game. Escape closes the screen as it does for any vanilla screen, because Strata passes on input it does not use.
+`ThemeRef.of(MinecraftThemes.VANILLA)` draws buttons, check boxes, sliders and text boxes with vanilla's own sprites, so a screen looks like part of the game, and it follows the player's resource packs. See [Themes from resource packs](#themes-from-resource-packs). Escape closes the screen as it does for any vanilla screen, because Strata passes on input it does not use.
 
 ## The lifecycle
 
@@ -181,6 +181,36 @@ Every key the theme sets:
 | `overlay.backdrop` | solid `0x60000000` |
 
 `button.focus` and `checkbox.focus` are not set, so vanilla-themed buttons and check boxes show focus through their hovered sprites only. Vanilla's check box sprites include the check mark, so `checkbox.mark` is not set either, and vanilla has no disabled check box or slider sprites. Vanilla has no sprites for list rows, progress bars or separators, so they are plain colors. The tooltip keys are not set, so tooltips use Strata's fallback, a dark box with a purple edge in vanilla's classic tooltip colors. The borders match the sprites' `.png.mcmeta` files in 26.3. Minecraft reads the `.mcmeta`; other engines use the borders.
+
+### Themes from resource packs
+
+A `StrataScreen` given a `ThemeRef` resolves it when it opens and again after every resource reload (F3+T, or a change of packs). `MinecraftThemes.VANILLA` (`minecraft:vanilla`) is registered as the vanilla theme. Overrides on the ref are applied after the packs, so the mod's own keys always win:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:theme"
+```
+
+Images need nothing else. The theme names sprites in the gui atlas, so a pack that replaces `widget/button.png` restyles Strata buttons too, with the slicing from the pack's `.png.mcmeta`. For what images cannot carry, such as text colors, a different sprite for a key, or paints for keys vanilla has no sprite for, a pack adds a theme file at `assets/<namespace>/strata/themes/<path>.json`. This one restyles every screen that uses the vanilla theme:
+
+```json
+{
+  "paints": {
+    "list.row.selected": "#5A3A1A",
+    "progress.fill": { "sprite": "fancypack:widget/progress" }
+  },
+  "text": {
+    "button.text": { "color": "#FFD700" }
+  }
+}
+```
+
+The file format is in Strata's [theming guide](https://github.com/InspireNXE/Strata/blob/main/docs/guides/theming.md#theme-files). Packs stack in vanilla's order, and a higher pack wins per key. A mod can name its own theme, such as `ThemeRef.of(ThemeId.of("mymod", "shop"))`, and ship `assets/mymod/strata/themes/shop.json` with `"parent": "minecraft:vanilla"` and its own keys; packs can then override that file in turn. A theme built in code ignores packs:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:fixed"
+```
+
+A file with an error is logged and skipped. A reload that would leave out a key the open screen needs is logged too, and the screen keeps its old theme.
 
 ## Text
 
@@ -383,4 +413,4 @@ Nothing has run inside a Minecraft client yet. Minecraft drawing (item rendering
 - Controller and gamepad navigation.
 - Tooltip images, such as a bundle's contents, in item tooltips.
 - Drawing beyond fills, gradients, sprites, text and items. Vanilla offers no public hook for custom GUI geometry, and Fabric has none at all.
-- Changing a `StrataScreen`'s theme after it is created. `StrataScreen` takes its theme in the constructor and has no setter.
+- Changing a `StrataScreen`'s theme after it is created. `StrataScreen` takes its theme in the constructor and has no setter, although a `ThemeRef` follows resource reloads.

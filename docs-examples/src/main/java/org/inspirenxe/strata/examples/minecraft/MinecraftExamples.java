@@ -8,6 +8,7 @@ import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.theme.ThemeRef;
 import org.inspirenxe.strata.api.widget.Button;
 import org.inspirenxe.strata.api.widget.Image;
 import org.inspirenxe.strata.examples.quickstart.SettingsScreen;
@@ -27,7 +28,7 @@ public final class MinecraftExamples {
     static void open() {
         // --8<-- [start:open]
         Minecraft.getInstance().gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), MinecraftThemes.vanilla()));
+                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemes.VANILLA)));
         // --8<-- [end:open]
     }
 
@@ -36,7 +37,7 @@ public final class MinecraftExamples {
         // Network handlers and other threads must hop onto the client thread first
         final Minecraft minecraft = Minecraft.getInstance();
         minecraft.execute(() -> minecraft.gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), MinecraftThemes.vanilla())));
+                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemes.VANILLA))));
         // --8<-- [end:thread]
     }
 
@@ -47,7 +48,7 @@ public final class MinecraftExamples {
     public static final class LiveScreen extends StrataScreen {
 
         public LiveScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content) {
-            super(title, content, MinecraftThemes.vanilla());
+            super(title, content, ThemeRef.of(MinecraftThemes.VANILLA));
         }
 
         @Override
@@ -66,7 +67,7 @@ public final class MinecraftExamples {
 
         public ChildScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content,
                            final net.minecraft.client.gui.screens.Screen parent) {
-            super(title, content, MinecraftThemes.vanilla());
+            super(title, content, ThemeRef.of(MinecraftThemes.VANILLA));
             this.parent = parent;
         }
 
@@ -78,14 +79,24 @@ public final class MinecraftExamples {
     }
     // --8<-- [end:parent]
 
-    static Theme modTheme() {
+    static ThemeRef modTheme() {
         // --8<-- [start:theme]
         // Reads assets/examplemod/textures/gui/sprites/widget/fancy_button.png from the gui atlas
         final SpriteId fancy = SpriteId.of("examplemod", "widget/fancy_button");
-        final Theme theme = MinecraftThemes.vanilla().toBuilder()
-                .paint(Button.STYLE_NORMAL, Paint.nineSlice(fancy, Insets.of(4f)))
-                .build();
+        // Vanilla as resource packs restyle it, with this mod's button on top
+        final ThemeRef theme = ThemeRef.of(MinecraftThemes.VANILLA)
+                .override(Button.STYLE_NORMAL, Paint.nineSlice(fancy, Insets.of(4f)));
         // --8<-- [end:theme]
+        return theme;
+    }
+
+    static Theme fixedTheme() {
+        // --8<-- [start:fixed]
+        // A theme built in code ignores resource packs
+        final Theme theme = MinecraftThemes.vanilla().toBuilder()
+                .paint(Button.STYLE_NORMAL, Paint.solid(0xFF2E7D32))
+                .build();
+        // --8<-- [end:fixed]
         return theme;
     }
 

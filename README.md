@@ -4,7 +4,7 @@ Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-
 
 | Module | What it is |
 |---|---|
-| `common` | The adapter, written against vanilla classes only: `StrataScreen`, `MinecraftThemes`, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput`, all in `org.inspirenxe.strata.minecraft`. |
+| `common` | The adapter, written against vanilla classes only: `StrataScreen`, `MinecraftThemes`, `MinecraftThemeSource`, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput`, all in `org.inspirenxe.strata.minecraft`. |
 | `neoforge` | The `strata` mod jar for NeoForge: `common` compiled in, Strata's `api`, `spi` and `core` jars nested with `jarJar`, and an empty `@Mod` entry point. |
 | `fabric` | The `strata` mod jar for Fabric: `common` compiled in, and Strata's jars nested with `include`. |
 | `docs-examples` | The code the documentation shows, compiled against `common` and the vanilla classes so it stays correct. |
@@ -17,10 +17,11 @@ A screen is written against Strata's API exactly as it would be for any other en
 
 ```java
 Minecraft.getInstance().gui.setScreen(
-        new StrataScreen(Component.literal("Settings"), new SettingsScreen(), MinecraftThemes.vanilla()));
+        new StrataScreen(Component.literal("Settings"), new SettingsScreen(),
+                ThemeRef.of(MinecraftThemes.VANILLA)));
 ```
 
-Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [docs/minecraft.md](docs/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme, items and item tooltips, input, threading, and how the game differs from Strata's Swing adapter.
+Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [docs/minecraft.md](docs/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, items and item tooltips, input, threading, and how the game differs from Strata's Swing adapter.
 
 ## Requirements
 

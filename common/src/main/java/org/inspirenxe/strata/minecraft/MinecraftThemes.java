@@ -7,6 +7,7 @@ import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.theme.ThemeId;
 import org.inspirenxe.strata.api.widget.Button;
 import org.inspirenxe.strata.api.widget.CheckBox;
 import org.inspirenxe.strata.api.widget.ComboBox;
@@ -32,6 +33,13 @@ public final class MinecraftThemes {
     private static final Insets SCROLLER_BORDER = Insets.of(1f);
     private static final Insets TAB_BORDER = new Insets(2f, 2f, 2f, 0f);
     private static final Insets POPUP_BORDER = Insets.of(6f);
+
+    /**
+     * The id {@link #vanilla()} is registered under. Pass {@code ThemeRef.of(MinecraftThemes.VANILLA)} to a
+     * {@link StrataScreen} to look like the game and follow resource packs, which restyle it with
+     * {@code assets/minecraft/strata/themes/vanilla.json}.
+     */
+    public static final ThemeId VANILLA = ThemeId.of("minecraft", "vanilla");
 
     private MinecraftThemes() {
     }
@@ -64,7 +72,7 @@ public final class MinecraftThemes {
      */
     public static Theme vanilla() {
         final TextStyle text = TextStyle.DEFAULT.withColor(0xFFFFFFFF).withShadow(true);
-        return Theme.builder("minecraft")
+        return Theme.builder(VANILLA.toString())
                 .paint(Button.STYLE_NORMAL, Paint.nineSlice(sprite("widget/button"), BUTTON_BORDER))
                 .paint(Button.STYLE_HOVERED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))
                 .paint(Button.STYLE_PRESSED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))

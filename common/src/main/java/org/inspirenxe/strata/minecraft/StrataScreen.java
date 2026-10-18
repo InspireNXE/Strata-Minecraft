@@ -11,6 +11,7 @@ import org.inspirenxe.strata.api.input.KeyAction;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.ScrollKind;
 import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.theme.ThemeRef;
 import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.spi.HeldKeys;
 import org.inspirenxe.strata.spi.ScreenHost;
@@ -22,8 +23,12 @@ import java.util.Objects;
  *
  * <pre>{@code
  * Minecraft.getInstance().gui.setScreen(
- *         new StrataScreen(Component.literal("Settings"), new SettingsScreen(), MinecraftThemes.vanilla()));
+ *         new StrataScreen(Component.literal("Settings"), new SettingsScreen(),
+ *                 ThemeRef.of(MinecraftThemes.VANILLA)));
  * }</pre>
+ *
+ * <p>Given a {@link ThemeRef}, the screen follows resource packs: it resolves the ref when it opens and again
+ * after every resource reload, keeping the ref's overrides. Given a {@link Theme}, it keeps that theme.</p>
  *
  * <p>How Minecraft maps onto Strata:</p>
  * <ul>
@@ -46,6 +51,7 @@ import java.util.Objects;
 public class StrataScreen extends Screen {
     private final org.inspirenxe.strata.api.screen.Screen content;
     private final Theme theme;
+    private final ThemeRef themeRef;
     private final HeldKeys heldKeys;
     private MinecraftCanvas canvas;
     private ScreenHost host;
@@ -61,6 +67,24 @@ public class StrataScreen extends Screen {
         super(title);
         this.content = Objects.requireNonNull(content, "content");
         this.theme = Objects.requireNonNull(theme, "theme");
+        this.themeRef = null;
+        this.heldKeys = new HeldKeys();
+    }
+
+    /**
+     * Creates the vanilla screen with a theme that follows resource packs. Nothing is built or resolved until
+     * Minecraft opens it.
+     *
+     * @param title the vanilla title, used for narration
+     * @param content the Strata screen to show
+     * @param theme the theme to resolve, for example {@code ThemeRef.of(MinecraftThemes.VANILLA)}
+     */
+    public StrataScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content,
+                        final ThemeRef theme) {
+        super(title);
+        this.content = Objects.requireNonNull(content, "content");
+        this.theme = null;
+        this.themeRef = Objects.requireNonNull(theme, "theme");
         this.heldKeys = new HeldKeys();
     }
 
@@ -78,7 +102,9 @@ public class StrataScreen extends Screen {
         if (this.host == null) {
             this.canvas = new MinecraftCanvas(this.font);
             final MinecraftPlatform platform = new MinecraftPlatform(this.minecraft, this.canvas.textMetrics(), this);
-            this.host = StrataCore.createScreenHost(platform, this.theme, this::onClose);
+            this.host = this.themeRef != null
+                    ? StrataCore.createScreenHost(platform, this.themeRef, this::onClose)
+                    : StrataCore.createScreenHost(platform, this.theme, this::onClose);
             this.host.resize(this.width, this.height);
             this.host.open(this.content);
         } else {

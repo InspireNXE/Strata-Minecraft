@@ -8,6 +8,7 @@ import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
 import org.inspirenxe.strata.spi.Platform;
 import org.inspirenxe.strata.spi.TextInputSink;
+import org.inspirenxe.strata.spi.ThemeSource;
 
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ import java.util.Optional;
  *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen.</li>
  *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
+ *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
@@ -99,5 +101,10 @@ public final class MinecraftPlatform implements Platform {
     @Override
     public Capabilities capabilities() {
         return CAPABILITIES;
+    }
+
+    @Override
+    public ThemeSource themes() {
+        return MinecraftThemeSource.get(this.minecraft);
     }
 }
