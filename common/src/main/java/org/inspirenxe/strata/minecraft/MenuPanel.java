@@ -17,6 +17,7 @@ import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 
 import java.util.List;
 import java.util.Set;
@@ -37,8 +38,10 @@ import java.util.Set;
  *     around the slot, for slots that are highlightable), the item through an
  *     {@link MinecraftVisuals#item item visual} with its count and damage bar, an empty slot's
  *     {@code getNoItemIcon()} sprite, and while the player drags a stack over slots, each slot's share of it on a
- *     translucent white square, with the count in yellow where it reaches the slot's limit. Inactive slots draw
- *     nothing. Fake slots draw like real ones.</li>
+ *     translucent white square, with the count in yellow where it reaches the slot's limit. As in vanilla, a slot
+ *     that stops accepting the dragged stack leaves the drag, and the carried stack's count is worked out again.
+ *     Items draw with vanilla's model seed for their slot, and a fake slot's item draws with no entity holding it,
+ *     as vanilla's {@code fakeItem} does. Inactive slots draw nothing.</li>
  * </ul>
  *
  * <p>The panel takes no input itself: the screen hands presses over it to vanilla. Get it from
@@ -180,6 +183,7 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
         final AbstractContainerMenu menu = this.owner.menu();
         final Set<Slot> dragged = this.owner.quickCraftSlots();
         final ItemStack carried = menu.getCarried();
+        final int seed = slot.x + slot.y * this.owner.imageWidth();
         ItemStack stack = slot.getItem();
         boolean preview = false;
         int limit = -1;
@@ -198,6 +202,9 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
                     limit = max;
                 }
                 stack = carried.copyWithCount(count);
+            } else {
+                // Vanilla drops a slot that no longer takes the stack and counts the carried stack again
+                this.owner.dropFromDrag(slot);
             }
         }
         final Rect rect = this.itemRects[i];
@@ -209,24 +216,24 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
             return;
         }
         if (!preview) {
-            painter.visual(this.visual(i, stack), rect, 0xFFFFFFFF);
+            painter.visual(this.visual(i, slot, stack, seed), rect, 0xFFFFFFFF);
             return;
         }
         painter.fill(rect, PREVIEW_COLOR);
         if (limit < 0) {
-            painter.visual(MinecraftVisuals.item(stack), rect, 0xFFFFFFFF);
+            painter.visual(new ItemVisual(stack, ItemDecorations.ALL, slot.isFake(), seed), rect, 0xFFFFFFFF);
             return;
         }
-        painter.visual(MinecraftVisuals.item(stack, new ItemDecorations(false, true)), rect, 0xFFFFFFFF);
+        painter.visual(new ItemVisual(stack, new ItemDecorations(false, true), slot.isFake(), seed), rect, 0xFFFFFFFF);
         final TextSpan count = new TextSpan(String.valueOf(limit), LIMIT_STYLE);
         // Where vanilla's itemDecorations puts a count
         painter.text(count, rect.x() + 17f - this.environment().text().width(count), rect.y() + 9f);
     }
 
-    private Visual visual(final int i, final ItemStack stack) {
+    private Visual visual(final int i, final Slot slot, final ItemStack stack, final int seed) {
         if (this.shown[i] == null || !ItemStack.matches(this.shown[i], stack)) {
             this.shown[i] = stack.copy();
-            this.visuals[i] = MinecraftVisuals.item(stack);
+            this.visuals[i] = new ItemVisual(stack.copy(), ItemDecorations.ALL, slot.isFake(), seed);
         }
         return this.visuals[i];
     }
@@ -265,6 +272,12 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
          * Returns vanilla's quick-craft type for the running drag: 0 spreads evenly, 1 places one each, 2 clones.
          */
         int quickCraftType();
+
+        /**
+         * Takes a slot out of the running drag because it no longer accepts the carried stack, and counts what the
+         * carried stack will keep again, as vanilla's own slot drawing does.
+         */
+        void dropFromDrag(Slot slot);
 
         /**
          * Runs vanilla's container drawing for compatibility mode.

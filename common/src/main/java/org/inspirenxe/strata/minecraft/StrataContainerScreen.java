@@ -1,6 +1,8 @@
 package org.inspirenxe.strata.minecraft;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.ItemSlotMouseAction;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -11,6 +13,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.component.Container;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Key;
@@ -25,7 +28,10 @@ import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.spi.HeldKeys;
 import org.inspirenxe.strata.spi.ScreenHost;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -58,7 +64,10 @@ import java.util.Set;
  *     of the frame, except while the pointer is outside the panel or a modal dialog is open.</li>
  *     <li>The slots are drawn by vanilla or by Strata, as {@link SlotRendering} describes. The player can force
  *     vanilla drawing in {@code config/strata-client.json}, read each time a screen opens: see
- *     {@link #slotRendering()}.</li>
+ *     {@link #slotRendering()}. In Strata mode the screen still does what vanilla's own slot drawing does
+ *     besides drawing: it tracks the hovered slot, tells the slot mouse actions (such as bundles') when the pointer
+ *     leaves a slot, and drops a slot that stops accepting a dragged stack from the drag, drawing the carried
+ *     stack's new count itself.</li>
  *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is blurred
  *     and dimmed as for any container screen, and the game does not pause.</li>
  * </ul>
@@ -82,6 +91,8 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     private final HeldKeys heldKeys;
     private final Set<Integer> vanillaButtons;
     private final PanelOwner owner;
+    // Vanilla's own list is private; every action goes through addItemSlotMouseAction, so this mirrors it
+    private final List<ItemSlotMouseAction> mouseActions;
     private SlotRendering rendering;
     private MinecraftCanvas canvas;
     private ScreenHost host;
@@ -92,6 +103,8 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     private int frameMouseY;
     private float frameA;
     private boolean drawingCarried;
+    private boolean recounted;
+    private int carriedRemainder;
 
     /**
      * Creates the screen for a menu of vanilla's default size, 176 by 166, with vanilla drawing the slots.
@@ -131,6 +144,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         this.heldKeys = new HeldKeys();
         this.vanillaButtons = new HashSet<>();
         this.owner = new PanelOwner();
+        this.mouseActions = new ArrayList<>();
     }
 
     /**
@@ -157,6 +171,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         this.heldKeys = new HeldKeys();
         this.vanillaButtons = new HashSet<>();
         this.owner = new PanelOwner();
+        this.mouseActions = new ArrayList<>();
     }
 
     /**
@@ -172,6 +187,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
     @Override
     protected void init() {
+        this.mouseActions.clear();
         super.init();
         if (this.host == null) {
             this.rendering = StrataClientConfig.load(StrataClientConfig.file(this.minecraft.gameDirectory.toPath()))
@@ -190,6 +206,12 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             this.host.resize(this.width, this.height);
         }
         this.placeMenu(true);
+    }
+
+    @Override
+    protected void addItemSlotMouseAction(final ItemSlotMouseAction itemSlotMouseAction) {
+        super.addItemSlotMouseAction(itemSlotMouseAction);
+        this.mouseActions.add(itemSlotMouseAction);
     }
 
     @Override
@@ -214,16 +236,15 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         this.frameMouseX = mouseX;
         this.frameMouseY = mouseY;
         this.frameA = a;
+        if (!this.isQuickCrafting) {
+            this.recounted = false;
+        }
         if (this.rendering == SlotRendering.STRATA) {
             // Vanilla sets this while drawing its slots, which Strata mode skips
-            this.hoveredSlot = this.pointerOverMenu() ? this.slotAt(mouseX, mouseY) : null;
+            this.hover(this.pointerOverMenu() ? this.slotAt(mouseX, mouseY) : null);
         }
         this.canvas.begin(graphics);
         this.host.render(this.canvas);
-        if (!this.pointerOverMenu()) {
-            // Vanilla finds the hovered slot by position alone; Strata content over the slots hides it
-            this.hoveredSlot = null;
-        }
         if (this.rendering == SlotRendering.STRATA) {
             this.extractTooltip(graphics, mouseX, mouseY);
         }
@@ -238,9 +259,28 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     @Override
     public void extractCarriedItem(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         // Held back while vanilla's contents draw inside Strata's tree, so the stack floats over all of Strata
-        if (this.drawingCarried) {
-            super.extractCarriedItem(graphics, mouseX, mouseY);
+        if (!this.drawingCarried) {
+            return;
         }
+        if (!this.recounted || !this.isQuickCrafting) {
+            super.extractCarriedItem(graphics, mouseX, mouseY);
+            return;
+        }
+        // Vanilla's carried stack with the count the panel worked out again, since vanilla keeps its own private
+        ItemStack carried = this.menu.getCarried();
+        if (carried.isEmpty()) {
+            return;
+        }
+        String count = null;
+        if (this.quickCraftSlots.size() > 1) {
+            carried = carried.copyWithCount(this.carriedRemainder);
+            if (carried.isEmpty()) {
+                count = ChatFormatting.YELLOW + "0";
+            }
+        }
+        graphics.nextStratum();
+        graphics.item(carried, mouseX - 8, mouseY - 8);
+        graphics.itemDecorations(this.font, carried, mouseX - 8, mouseY - 8, count);
     }
 
     @Override
@@ -325,7 +365,20 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         if (this.host.key(key, action, MinecraftInput.modifiers(event))) {
             return true;
         }
-        return !hasModal(this.host.factory().overlays()) && super.keyPressed(event);
+        if (hasModal(this.host.factory().overlays())) {
+            return false;
+        }
+        if (this.pointerOverMenu()) {
+            return super.keyPressed(event);
+        }
+        // Vanilla finds the hovered slot by position alone; keep slot keys away from slots Strata content covers
+        final Slot hovered = this.hoveredSlot;
+        this.hoveredSlot = null;
+        try {
+            return super.keyPressed(event);
+        } finally {
+            this.hoveredSlot = hovered;
+        }
     }
 
     @Override
@@ -376,7 +429,50 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     private void hideMenu() {
         this.leftPos = HIDDEN_POS;
         this.topPos = HIDDEN_POS;
-        this.hoveredSlot = null;
+        this.hover(null);
+    }
+
+    /**
+     * Sets the hovered slot and, as vanilla's drawing does, tells the slot mouse actions about a slot the pointer
+     * left.
+     */
+    private void hover(final Slot slot) {
+        final Slot previous = this.hoveredSlot;
+        this.hoveredSlot = slot;
+        if (previous != null && previous != slot && previous.hasItem()) {
+            for (final ItemSlotMouseAction action : this.mouseActions) {
+                if (action.matches(previous)) {
+                    action.onStopHovering(previous);
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns how many of the carried stack a drag keeps, as vanilla's private {@code recalculateQuickCraftRemaining}
+     * works it out.
+     *
+     * @param carried the carried stack
+     * @param slots the slots in the drag
+     * @param type the drag's type: 0 spreads evenly, 1 places one each, 2 clones
+     * @return the count left on the cursor
+     */
+    static int quickCraftRemainder(final ItemStack carried, final Collection<Slot> slots, final int type) {
+        if (carried.isEmpty()) {
+            return 0;
+        }
+        if (type == 2) {
+            return carried.getMaxStackSize();
+        }
+        int remainder = carried.getCount();
+        for (final Slot slot : slots) {
+            final ItemStack inSlot = slot.getItem();
+            final int carry = inSlot.isEmpty() ? 0 : inSlot.getCount();
+            final int max = Math.min(carried.getMaxStackSize(), slot.getMaxStackSize(carried));
+            final int count = Math.min(AbstractContainerMenu.getQuickCraftPlaceCount(slots.size(), type, carried) + carry, max);
+            remainder -= count - carry;
+        }
+        return remainder;
     }
 
     private static boolean isShown(final org.inspirenxe.strata.api.component.Component<?> component) {
@@ -494,6 +590,14 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         @Override
         public int quickCraftType() {
             return StrataContainerScreen.this.quickCraftType;
+        }
+
+        @Override
+        public void dropFromDrag(final Slot slot) {
+            final StrataContainerScreen<M> screen = StrataContainerScreen.this;
+            screen.quickCraftSlots.remove(slot);
+            screen.recounted = true;
+            screen.carriedRemainder = quickCraftRemainder(screen.menu.getCarried(), screen.quickCraftSlots, screen.quickCraftType);
         }
 
         @Override

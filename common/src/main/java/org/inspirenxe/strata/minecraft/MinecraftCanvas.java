@@ -169,7 +169,8 @@ public final class MinecraftCanvas implements Canvas {
     @Override
     public void visual(final Visual visual, final Rect rect, final int tint) {
         switch (visual) {
-            case ItemVisual(final ItemStack stack, final ItemDecorations decorations) -> this.item(stack, decorations, rect, tint);
+            case ItemVisual(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed) ->
+                    this.item(stack, decorations, fake, seed, rect, tint);
             case ProfileFaceVisual(final ResolvableProfile profile, final boolean hat) ->
                     this.playerFace(this.skins.apply(profile), hat, rect, tint);
             case SkinFaceVisual(final PlayerSkin skin, final boolean hat) -> this.playerFace(skin, hat, rect, tint);
@@ -177,7 +178,8 @@ public final class MinecraftCanvas implements Canvas {
         }
     }
 
-    private void item(final ItemStack stack, final ItemDecorations decorations, final Rect rect, final int tint) {
+    private void item(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed,
+                      final Rect rect, final int tint) {
         if ((tint >>> 24) == 0 || stack.isEmpty() || rect.width() <= 0f || rect.height() <= 0f) {
             return;
         }
@@ -186,7 +188,11 @@ public final class MinecraftCanvas implements Canvas {
             this.graphics.pose().translate(Math.round(rect.x()), Math.round(rect.y()));
             this.graphics.pose().scale(rect.width() / MinecraftVisuals.ITEM_SIZE.width(),
                     rect.height() / MinecraftVisuals.ITEM_SIZE.height());
-            this.graphics.item(stack, 0, 0);
+            if (fake) {
+                this.graphics.fakeItem(stack, 0, 0, seed);
+            } else {
+                this.graphics.item(stack, 0, 0, seed);
+            }
             this.itemDecorations(stack, decorations);
         } finally {
             this.graphics.pose().popMatrix();

@@ -382,7 +382,7 @@ Who draws the slots is a choice:
 | What other mods draw on slots | Shown | Not shown on this screen |
 | Restyled by | Resource packs, as for vanilla screens | Strata themes and pack theme files |
 
-Both modes draw `slot.background` behind every active slot, since the screen has no vanilla background texture. Strata mode draws the highlight, the item, an empty slot's icon (such as an armor outline) and the counts a drag would leave, as vanilla does. Fake slots draw like real ones there, and bundles are not told when the pointer leaves them.
+Both modes draw `slot.background` behind every active slot, since the screen has no vanilla background texture. Strata mode draws the highlight, the item, an empty slot's icon (such as an armor outline) and the counts a drag would leave, as vanilla does, and does what vanilla's slot drawing does besides drawing: items use vanilla's model seed for their slot, fake slots draw their items with no entity holding them, bundles hear when the pointer leaves them, and a slot that stops accepting a dragged stack leaves the drag, with the carried stack's count worked out again. What Strata mode still leaves out is whatever other mods add to vanilla's slot drawing, such as NeoForge's per-item count fonts.
 
 Players can force vanilla drawing. Strata writes `config/strata-client.json` the first time a container screen opens:
 

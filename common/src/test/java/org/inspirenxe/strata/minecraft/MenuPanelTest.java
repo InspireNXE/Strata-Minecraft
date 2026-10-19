@@ -18,6 +18,7 @@ import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Themes;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 import org.inspirenxe.strata.spi.Canvas;
 import org.inspirenxe.strata.spi.ScreenHost;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,7 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -53,6 +56,8 @@ class MenuPanelTest {
     private Slot diamonds;
     private Slot helmet;
     private Slot inactive;
+    private Slot fake;
+    private SimpleContainer container;
     private FakeOwner owner;
     private Canvas canvas;
 
@@ -65,9 +70,11 @@ class MenuPanelTest {
     void setUp() {
         this.host = TestHosts.create(Themes.flat());
         this.menu = new TestMenu();
-        final SimpleContainer container = new SimpleContainer(3);
+        final SimpleContainer container = new SimpleContainer(4);
+        this.container = container;
         container.setItem(0, new ItemStack(Items.DIAMOND, 3));
         container.setItem(2, new ItemStack(Items.EMERALD));
+        container.setItem(3, new ItemStack(Items.GOLD_INGOT));
         this.diamonds = this.menu.add(new Slot(container, 0, 8, 4));
         this.helmet = this.menu.add(new Slot(container, 1, 26, 4) {
             @Override
@@ -79,6 +86,12 @@ class MenuPanelTest {
             @Override
             public boolean isActive() {
                 return false;
+            }
+        });
+        this.fake = this.menu.add(new Slot(container, 3, 26, 22) {
+            @Override
+            public boolean isFake() {
+                return true;
             }
         });
         this.owner = new FakeOwner(this.menu);
@@ -118,8 +131,9 @@ class MenuPanelTest {
     void strataModeDrawsItemsAndEmptySlotIconsAndSkipsInactiveSlots() {
         this.render();
 
-        verify(this.canvas).visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3)), new Rect(18f, 24f, 16f, 16f), WHITE);
+        verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.ALL, false, 168), new Rect(18f, 24f, 16f, 16f), WHITE);
         verify(this.canvas).sprite(HELMET, new Rect(36f, 24f, 16f, 16f), WHITE);
+        verify(this.canvas).visual(item(new ItemStack(Items.GOLD_INGOT), ItemDecorations.ALL, true, 906), new Rect(36f, 42f, 16f, 16f), WHITE);
         verify(this.canvas, never()).visual(any(Visual.class), eq(new Rect(18f, 42f, 16f, 16f)), anyInt());
         assertEquals(0, this.owner.vanillaDraws);
     }
@@ -148,8 +162,8 @@ class MenuPanelTest {
 
         // Ten spread over two slots: five each, added to the three already there
         verify(this.canvas).fill(new Rect(18f, 24f, 16f, 16f), 0x80FFFFFF);
-        verify(this.canvas).visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 8)), new Rect(18f, 24f, 16f, 16f), WHITE);
-        verify(this.canvas).visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 5)), new Rect(36f, 24f, 16f, 16f), WHITE);
+        verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 8), ItemDecorations.ALL, false, 168), new Rect(18f, 24f, 16f, 16f), WHITE);
+        verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 5), ItemDecorations.ALL, false, 186), new Rect(36f, 24f, 16f, 16f), WHITE);
         verify(this.canvas, never()).sprite(eq(HELMET), any(Rect.class), anyInt());
     }
 
@@ -163,7 +177,7 @@ class MenuPanelTest {
 
         this.render();
 
-        verify(this.canvas).visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 64), new ItemDecorations(false, true)),
+        verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 64), new ItemDecorations(false, true), false, 168),
                 new Rect(18f, 24f, 16f, 16f), WHITE);
         verify(this.canvas).text(new TextSpan("64", TextStyle.DEFAULT.withColor(0xFFFFFF55).withShadow(true)),
                 18f + 17f - 2 * TestHosts.CHAR_WIDTH, 33f);
@@ -178,6 +192,36 @@ class MenuPanelTest {
         this.render();
 
         verify(this.canvas, never()).visual(any(Visual.class), eq(new Rect(18f, 24f, 16f, 16f)), anyInt());
+    }
+
+    @Test
+    void aSlotThatStopsTakingTheDraggedStackLeavesTheDrag() {
+        this.menu.setCarried(new ItemStack(Items.DIAMOND, 10));
+        this.owner.quickCrafting = true;
+        this.owner.quickCraftSlots.add(this.diamonds);
+        this.owner.quickCraftSlots.add(this.helmet);
+        this.owner.quickCraftSlots.add(this.fake);
+
+        this.render();
+
+        assertEquals(List.of(this.fake), this.owner.dropped, "gold ingots do not take diamonds");
+        verify(this.canvas).visual(item(new ItemStack(Items.GOLD_INGOT), ItemDecorations.ALL, true, 906), new Rect(36f, 42f, 16f, 16f), WHITE);
+    }
+
+    @Test
+    void theCarriedRemainderIsCountedAsVanillaCountsIt() {
+        final ItemStack carried = new ItemStack(Items.DIAMOND, 10);
+
+        // Five each; the slot with three takes five more
+        assertEquals(0, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 0));
+        // One each
+        assertEquals(8, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 1));
+        // Cloning always leaves a full stack
+        assertEquals(64, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 2));
+        // A full slot takes nothing
+        this.container.setItem(0, new ItemStack(Items.DIAMOND, 64));
+        assertEquals(5, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 0));
+        assertEquals(0, StrataContainerScreen.quickCraftRemainder(ItemStack.EMPTY, List.of(this.diamonds), 0));
     }
 
     @Test
@@ -220,6 +264,10 @@ class MenuPanelTest {
         assertFalse(routes(Optional.of(panel), panel), "a modal dialog takes everything");
     }
 
+    private static Visual item(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed) {
+        return new ItemVisual(stack, decorations, fake, seed);
+    }
+
     private boolean routes(final Optional<Component<?>> hovered, final MenuPanel panel) {
         return StrataContainerScreen.routesToMenu(hovered, this.host.factory().overlays(), panel);
     }
@@ -258,6 +306,7 @@ class MenuPanelTest {
         private boolean quickCrafting;
         private int quickCraftType;
         private int vanillaDraws;
+        private final List<Slot> dropped = new ArrayList<>();
 
         FakeOwner(final AbstractContainerMenu menu) {
             this.menu = menu;
@@ -303,6 +352,12 @@ class MenuPanelTest {
         @Override
         public int quickCraftType() {
             return this.quickCraftType;
+        }
+
+        @Override
+        public void dropFromDrag(final Slot slot) {
+            this.dropped.add(slot);
+            this.quickCraftSlots.remove(slot);
         }
 
         @Override

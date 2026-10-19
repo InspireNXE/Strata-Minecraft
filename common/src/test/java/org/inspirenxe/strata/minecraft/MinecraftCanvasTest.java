@@ -179,12 +179,12 @@ class MinecraftCanvasTest {
     void itemVisualsDrawWithVanillaItemRenderingScaledToTheRect() {
         final ItemStack stack = new ItemStack(Items.DIAMOND, 3);
         final Matrix3x2f[] drawnWith = new Matrix3x2f[1];
-        doAnswer(invocation -> drawnWith[0] = new Matrix3x2f(this.pose)).when(this.graphics).item(any(ItemStack.class), anyInt(), anyInt());
+        doAnswer(invocation -> drawnWith[0] = new Matrix3x2f(this.pose)).when(this.graphics).item(any(ItemStack.class), anyInt(), anyInt(), anyInt());
 
         this.canvas.visual(MinecraftVisuals.item(stack), new Rect(10.4f, 20f, 32f, 32f), 0xFFFFFFFF);
 
         final ArgumentCaptor<ItemStack> drawn = ArgumentCaptor.forClass(ItemStack.class);
-        verify(this.graphics).item(drawn.capture(), eq(0), eq(0));
+        verify(this.graphics).item(drawn.capture(), eq(0), eq(0), eq(0));
         assertTrue(ItemStack.matches(stack, drawn.getValue()), "the visual's copy of the stack is drawn");
         verify(this.graphics).itemDecorations(this.font, drawn.getValue(), 0, 0);
         verify(this.graphics, never()).fill(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
@@ -199,7 +199,7 @@ class MinecraftCanvasTest {
     void itemVisualsCanSkipDecorations() {
         this.canvas.visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.NONE), new Rect(0, 0, 16, 16), 0xFFFFFFFF);
 
-        verify(this.graphics).item(any(ItemStack.class), eq(0), eq(0));
+        verify(this.graphics).item(any(ItemStack.class), eq(0), eq(0), eq(0));
         verify(this.graphics, never()).itemDecorations(any(Font.class), any(ItemStack.class), anyInt(), anyInt());
         verify(this.graphics, never()).text(any(Font.class), anyString(), anyInt(), anyInt(), anyInt(), anyBoolean());
     }
@@ -231,7 +231,7 @@ class MinecraftCanvasTest {
         this.canvas.visual(MinecraftVisuals.item(ItemStack.EMPTY), new Rect(0, 0, 16, 16), 0xFFFFFFFF);
         this.canvas.visual(MinecraftVisuals.item(new ItemStack(Items.DIAMOND)), new Rect(0, 0, 16, 16), 0x00FFFFFF);
 
-        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt());
+        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt(), anyInt());
     }
 
     @Test
@@ -241,7 +241,7 @@ class MinecraftCanvasTest {
         this.canvas.visual(foreign, new Rect(0, 0, 16, 16), 0xFFFFFFFF);
 
         verify(this.graphics).fill(0, 0, 16, 16, MinecraftCanvas.MISSING_VISUAL_COLOR);
-        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt());
+        verify(this.graphics, never()).item(any(ItemStack.class), anyInt(), anyInt(), anyInt());
     }
 
     @Test
@@ -256,6 +256,19 @@ class MinecraftCanvasTest {
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 5)), visual, "counts differ");
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.EMERALD, 3)), visual, "items differ");
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.NONE), visual, "decorations differ");
+        assertNotEquals(new MinecraftVisuals.ItemVisual(new ItemStack(Items.DIAMOND, 3), ItemDecorations.ALL, true, 0), visual, "fake differs");
+        assertNotEquals(new MinecraftVisuals.ItemVisual(new ItemStack(Items.DIAMOND, 3), ItemDecorations.ALL, false, 7), visual, "seeds differ");
+    }
+
+    @Test
+    void fakeSlotItemsDrawAsVanillaDrawsThemWithTheirSeed() {
+        this.canvas.visual(new MinecraftVisuals.ItemVisual(new ItemStack(Items.DIAMOND), ItemDecorations.ALL, true, 42),
+                new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+        this.canvas.visual(new MinecraftVisuals.ItemVisual(new ItemStack(Items.EMERALD), ItemDecorations.ALL, false, 7),
+                new Rect(0, 0, 16, 16), 0xFFFFFFFF);
+
+        verify(this.graphics).fakeItem(any(ItemStack.class), eq(0), eq(0), eq(42));
+        verify(this.graphics).item(any(ItemStack.class), eq(0), eq(0), eq(7));
     }
 
     @Test

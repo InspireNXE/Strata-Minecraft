@@ -55,7 +55,7 @@ public final class MinecraftVisuals {
      * @return the visual, 16 by 16
      */
     public static Visual item(final ItemStack stack, final ItemDecorations decorations) {
-        return new ItemVisual(stack.copy(), decorations);
+        return new ItemVisual(stack.copy(), decorations, false, 0);
     }
 
     /**
@@ -143,12 +143,15 @@ public final class MinecraftVisuals {
 
     /**
      * An item stack for the Minecraft canvas. Two are equal when their stacks match by {@link ItemStack#matches}
-     * (same item, count and components) and their decorations are equal.
+     * (same item, count and components) and everything else is equal.
      *
      * @param stack the stack, a copy owned by the visual and never changed
      * @param decorations the decorations to draw
+     * @param fake whether to draw it as vanilla draws a fake slot's item, with no entity holding it
+     * @param seed the seed vanilla's item models pick random variants with; vanilla's slots use
+     *             {@code x + y * imageWidth}, and lone items 0
      */
-    record ItemVisual(ItemStack stack, ItemDecorations decorations) implements Visual {
+    record ItemVisual(ItemStack stack, ItemDecorations decorations, boolean fake, int seed) implements Visual {
         ItemVisual {
             Objects.requireNonNull(stack, "stack");
             Objects.requireNonNull(decorations, "decorations");
@@ -161,19 +164,23 @@ public final class MinecraftVisuals {
 
         @Override
         public boolean equals(final Object other) {
-            return other instanceof ItemVisual(final ItemStack otherStack, final ItemDecorations otherDecorations)
+            return other instanceof ItemVisual(final ItemStack otherStack, final ItemDecorations otherDecorations,
+                                               final boolean otherFake, final int otherSeed)
                     && ItemStack.matches(this.stack, otherStack)
-                    && this.decorations.equals(otherDecorations);
+                    && this.decorations.equals(otherDecorations)
+                    && this.fake == otherFake
+                    && this.seed == otherSeed;
         }
 
         @Override
         public int hashCode() {
-            return 31 * (31 * ItemStack.hashItemAndComponents(this.stack) + this.stack.getCount()) + this.decorations.hashCode();
+            final int stackHash = 31 * ItemStack.hashItemAndComponents(this.stack) + this.stack.getCount();
+            return 31 * (31 * (31 * stackHash + this.decorations.hashCode()) + Boolean.hashCode(this.fake)) + this.seed;
         }
 
         @Override
         public String toString() {
-            return "ItemVisual[" + this.stack + ", " + this.decorations + "]";
+            return "ItemVisual[" + this.stack + ", " + this.decorations + (this.fake ? ", fake" : "") + ", seed " + this.seed + "]";
         }
     }
 
