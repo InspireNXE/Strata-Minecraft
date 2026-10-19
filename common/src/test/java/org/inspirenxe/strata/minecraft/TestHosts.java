@@ -64,7 +64,7 @@ public final class TestHosts {
         when(platform.clock()).thenReturn(() -> 0L);
         when(platform.clipboard()).thenReturn(mock(Clipboard.class));
         when(platform.textInput()).thenReturn(mock(TextInputSink.class));
-        when(platform.capabilities()).thenReturn(new Capabilities(true));
+        when(platform.capabilities()).thenReturn(new Capabilities(true, false));
         when(platform.themes()).thenReturn(ThemeSource.NONE);
         final ScreenHost host = StrataCore.createScreenHost(platform, theme);
         host.resize(100f, 100f);

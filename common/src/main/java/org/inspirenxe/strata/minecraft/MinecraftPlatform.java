@@ -42,7 +42,7 @@ import java.util.Optional;
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
-    private static final Capabilities CAPABILITIES = new Capabilities(true);
+    private static final Capabilities CAPABILITIES = new Capabilities(true, false);
 
     private final Minecraft minecraft;
     private final MinecraftTextMetrics textMetrics;

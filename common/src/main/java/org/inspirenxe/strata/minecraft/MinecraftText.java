@@ -132,7 +132,7 @@ public final class MinecraftText {
         final TextColor color = style.getColor();
         final int argb = color == null ? base.color() : (base.color() & 0xFF000000) | (color.getValue() & 0xFFFFFF);
         return new TextStyle(argb, style.isBold(), style.isItalic(), style.isUnderlined(), style.isStrikethrough(),
-                base.shadow());
+                base.shadow(), base.monospace());
     }
 
     /**
