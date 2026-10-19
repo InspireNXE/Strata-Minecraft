@@ -41,4 +41,4 @@ include('common')
 include('neoforge')
 include('fabric')
 // The code the documentation shows, compiled so it stays correct
-include('docs-examples')
+include('docs')

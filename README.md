@@ -7,7 +7,7 @@ Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-
 | `common` | The adapter, written against vanilla classes only: `StrataScreen`, `MinecraftThemes`, `MinecraftThemeSource`, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput`, all in `org.inspirenxe.strata.minecraft`. |
 | `neoforge` | The `strata` mod jar for NeoForge: `common` compiled in, Strata's `api`, `spi` and `core` jars nested with `jarJar`, and an empty `@Mod` entry point. |
 | `fabric` | The `strata` mod jar for Fabric: `common` compiled in, and Strata's jars nested with `include`. |
-| `docs-examples` | The code the documentation shows, compiled against `common` and the vanilla classes so it stays correct. |
+| `docs` | The code the documentation shows, compiled against `common` and the vanilla classes so it stays correct. |
 
 The jars are named `strata-minecraft-<module>`, in the group `org.inspirenxe`. The mod id is `strata` on both loaders.
 
@@ -21,7 +21,7 @@ Minecraft.getInstance().gui.setScreen(
                 ThemeRef.of(MinecraftThemes.VANILLA)));
 ```
 
-Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [docs/minecraft.md](docs/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, items and item tooltips, input, threading, and how the game differs from Strata's Swing adapter.
+Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [notes/minecraft.md](notes/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, items and item tooltips, input, threading, and how the game differs from Strata's Swing adapter.
 
 ## Requirements
 
@@ -126,9 +126,9 @@ Both loaders can also nest one mod jar inside another: NeoForge with `jarJar`, F
 
 ## Documentation
 
-- [docs/minecraft.md](docs/minecraft.md): using Strata in Minecraft, from opening a screen to item tooltips.
-- [docs/DESIGN.md](docs/DESIGN.md): how the adapter maps Strata's SPI onto 26.3, the verified 26.3 facts, and the decisions and open questions.
-- [docs/ROADMAP.md](docs/ROADMAP.md): what is left before Almura's screens can run on Strata in game.
+- [notes/minecraft.md](notes/minecraft.md): using Strata in Minecraft, from opening a screen to item tooltips.
+- [notes/DESIGN.md](notes/DESIGN.md): how the adapter maps Strata's SPI onto 26.3, the verified 26.3 facts, and the decisions and open questions.
+- [notes/ROADMAP.md](notes/ROADMAP.md): what is left before Almura's screens can run on Strata in game.
 
 Strata's own documentation, for components, layout, events, themes and writing screens, is in the [Strata repository](https://github.com/InspireNXE/Strata).
 
