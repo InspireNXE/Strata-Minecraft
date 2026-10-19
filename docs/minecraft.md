@@ -207,6 +207,19 @@ Every key the theme sets:
 | `expander.text.disabled` | `0xFFA0A0A0` with shadow |
 | `grid.cell` | sprite `minecraft:container/slot` |
 | `grid.cell.hovered` | solid `0x80FFFFFF` |
+| `button.link.text` | `0xFFFFFFFF` with shadow |
+| `button.link.text.hovered` | `0xFFFFFF55` with shadow, the yellow of vanilla's plain text buttons |
+| `button.link.text.disabled` | `0xFFA0A0A0` with shadow |
+| `scroll.slim.track` | nothing, as the chat bar draws no track |
+| `scroll.slim.thumb`, `scroll.slim.thumb.hovered`, `scroll.slim.thumb.disabled` | solid `0xFF3333AA`, `0xFFCCCCCC` and `0xFF555555`, the chat bar's colors |
+| `busy.dot`, `busy.dot.active` | solid `0xFF404040` and `0xFF808080`, the loading dots' colors |
+| `busy.text` | `0xFFFFFFFF` with shadow |
+| `textbox.suggestions` | solid `0xD0000000`, behind command suggestions in chat |
+| `textbox.suggestion.text` | `0xFFAAAAAA` with shadow |
+| `duallist.list` | solid `0x80000000` |
+| `duallist.title` | `0xFFFFFFFF` with shadow |
+| `colorpicker.frame`, `colorpicker.marker`, `colorpicker.marker.outline`, `colorpicker.disabled` | solid `0xFFA0A0A0`, `0xFFFFFFFF`, `0xFF000000` and `0xA0000000`; vanilla has no color picker |
+| `window.grip`, `window.grip.hovered` | solid `0xFFA0A0A0` and `0xFFFFFFFF`; vanilla has no grip sprite |
 
 `button.focus` and `checkbox.focus` are not set, so vanilla-themed buttons and check boxes show focus through their hovered sprites only. Vanilla's check box sprites include the check mark, so `checkbox.mark` is not set either, and vanilla has no disabled check box or slider sprites. Vanilla has no sprites for list rows, progress bars, separators, menus or table headers, so they are plain colors. Spinners, text areas, trees, split panes and menu bars set no keys of their own: they fall back to the button, text box, list, separator and menu keys. Toasts use the tooltip fallback too. The tooltip keys are not set, so tooltips use Strata's fallback, a dark box with a purple edge in vanilla's classic tooltip colors. The borders match the sprites' `.png.mcmeta` files in 26.3. Minecraft reads the `.mcmeta`; other engines use the borders.
 
