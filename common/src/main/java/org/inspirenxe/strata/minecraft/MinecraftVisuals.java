@@ -1,7 +1,7 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.world.item.ItemStack;
-import org.inspirenxe.strata.api.geom.Size;
+import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.visual.Visual;
 
 import java.util.Objects;
