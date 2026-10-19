@@ -6,7 +6,7 @@ import org.inspirenxe.strata.api.control.button.RadioButton;
 import org.inspirenxe.strata.api.control.button.ToggleSwitch;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.collection.ListView;
-import org.inspirenxe.strata.api.control.collection.SlotGrid;
+import org.inspirenxe.strata.api.control.collection.GridView;
 import org.inspirenxe.strata.api.control.collection.TableView;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.display.ProgressBar;
@@ -165,8 +165,8 @@ public final class MinecraftThemes {
                 .paint(Expander.STYLE_HEADER_HOVERED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))
                 .textStyle(Expander.STYLE_TEXT, text)
                 .textStyle(Expander.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(SlotGrid.STYLE_SLOT, Paint.sprite(sprite("container/slot")))
-                .paint(SlotGrid.STYLE_SLOT_HOVERED, Paint.solid(0x80FFFFFF))
+                .paint(GridView.STYLE_CELL, Paint.sprite(sprite("container/slot")))
+                .paint(GridView.STYLE_CELL_HOVERED, Paint.solid(0x80FFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
                 .build();
     }
