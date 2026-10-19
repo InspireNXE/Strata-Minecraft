@@ -26,7 +26,7 @@ public final class SettingsScreen implements Screen {
         name.setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
 
         final Button save = factory.button("Save")
-                .onAction(() -> status.setText("Saved " + name.text()));
+                .onEvent(Button.PRESSED, event -> status.setText("Saved " + name.text()));
 
         final StackPanel column = factory.stackPanel()
                 .setSpacing(4)
