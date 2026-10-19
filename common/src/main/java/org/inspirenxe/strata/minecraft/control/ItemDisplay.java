@@ -2,6 +2,7 @@ package org.inspirenxe.strata.minecraft.control;
 
 import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.HasTooltip;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.event.input.PointerEvent;
 import org.inspirenxe.strata.api.extension.CustomComponent;
@@ -40,7 +41,7 @@ import java.util.function.Function;
  * <p>The display is not focusable, reads no theme keys and has no default behavior for input, so clicks pass
  * through to its ancestors. It has no events of its own: only code changes it. Use it on the render thread.</p>
  */
-public final class ItemDisplay extends CustomComponent<ItemDisplay> {
+public final class ItemDisplay extends CustomComponent<ItemDisplay> implements HasTooltip<ItemDisplay> {
     private ItemStack stack;
     private ItemDecorations decorations;
     private Visual visual;
