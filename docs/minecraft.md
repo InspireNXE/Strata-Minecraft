@@ -109,7 +109,7 @@ Without an `.mcmeta`, Minecraft stretches the image like a plain sprite, so a ni
 
 `MinecraftThemes.vanilla()` uses vanilla's own sprites:
 
-| Widget | Sprites | Text |
+| Control | Sprites | Text |
 |---|---|---|
 | Button | `widget/button`, `widget/button_highlighted` (hovered, focused and pressed), `widget/button_disabled` | White with a shadow, `0xFFA0A0A0` when disabled |
 | Text box | `widget/text_field`, `widget/text_field_highlighted` when focused. Vanilla has no disabled field sprite, so a disabled box uses the normal one. | `0xFFE0E0E0`, `0xFF707070` when disabled |
@@ -311,7 +311,7 @@ While a text box has focus, it also consumes every key that types a character, s
 
 ### Escape
 
-Escape is not consumed by any built-in widget, so vanilla receives it and closes the screen, even while a text box has focus. To keep a screen open on Escape, consume the key in a root handler, or subclass `StrataScreen` and override vanilla's `shouldCloseOnEsc()`.
+Escape is not consumed by any built-in control, so vanilla receives it and closes the screen, even while a text box has focus. To keep a screen open on Escape, consume the key in a root handler, or subclass `StrataScreen` and override vanilla's `shouldCloseOnEsc()`.
 
 ### Strata claims the whole screen
 
@@ -427,7 +427,7 @@ Not yet. Both directions are planned as hosting adapters. See [Not available yet
 | Input mapping | Against every key constant in the real 26.3 `InputConstants` |
 | The canvas | Against a mocked `GuiGraphicsExtractor`, including item visuals made from real item stacks |
 | Item tooltips | Styling against real chat components |
-| The vanilla theme | It defines every key the built-in widgets require |
+| The vanilla theme | It defines every key the built-in controls require |
 | Loader packaging | The processed mod metadata and the NeoForge entry point |
 | The examples on this page | `docs-examples` compiles them against `common` and the vanilla classes |
 

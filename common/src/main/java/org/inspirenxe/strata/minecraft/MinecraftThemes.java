@@ -1,5 +1,22 @@
 package org.inspirenxe.strata.minecraft;
 
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
+import org.inspirenxe.strata.api.control.button.RadioButton;
+import org.inspirenxe.strata.api.control.button.ToggleSwitch;
+import org.inspirenxe.strata.api.control.collection.ComboBox;
+import org.inspirenxe.strata.api.control.collection.ListView;
+import org.inspirenxe.strata.api.control.collection.SlotGrid;
+import org.inspirenxe.strata.api.control.collection.TableView;
+import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.display.ProgressBar;
+import org.inspirenxe.strata.api.control.display.Separator;
+import org.inspirenxe.strata.api.control.field.Slider;
+import org.inspirenxe.strata.api.control.field.TextBox;
+import org.inspirenxe.strata.api.control.menu.Menu;
+import org.inspirenxe.strata.api.control.pane.Expander;
+import org.inspirenxe.strata.api.control.pane.TabBar;
+import org.inspirenxe.strata.api.control.window.Window;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.layout.ScrollPanel;
 import org.inspirenxe.strata.api.overlay.Overlays;
@@ -8,26 +25,9 @@ import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.ThemeId;
-import org.inspirenxe.strata.api.widget.Button;
-import org.inspirenxe.strata.api.widget.CheckBox;
-import org.inspirenxe.strata.api.widget.ComboBox;
-import org.inspirenxe.strata.api.widget.Expander;
-import org.inspirenxe.strata.api.widget.Label;
-import org.inspirenxe.strata.api.widget.ListView;
-import org.inspirenxe.strata.api.widget.Menu;
-import org.inspirenxe.strata.api.widget.ProgressBar;
-import org.inspirenxe.strata.api.widget.RadioButton;
-import org.inspirenxe.strata.api.widget.Separator;
-import org.inspirenxe.strata.api.widget.Slider;
-import org.inspirenxe.strata.api.widget.SlotGrid;
-import org.inspirenxe.strata.api.widget.TabBar;
-import org.inspirenxe.strata.api.widget.TableView;
-import org.inspirenxe.strata.api.widget.TextBox;
-import org.inspirenxe.strata.api.widget.ToggleSwitch;
-import org.inspirenxe.strata.api.widget.Window;
 
 /**
- * Themes built from vanilla Minecraft's own GUI sprites, so Strata widgets look like vanilla ones.
+ * Themes built from vanilla Minecraft's own GUI sprites, so Strata controls look like vanilla widgets.
  */
 public final class MinecraftThemes {
     // Borders as declared in each sprite's .png.mcmeta in 26.3; Minecraft reads the .mcmeta, other engines these
@@ -51,7 +51,7 @@ public final class MinecraftThemes {
     }
 
     /**
-     * Returns a theme matching vanilla's widgets. It defines every key of every built-in widget:
+     * Returns a theme matching vanilla's widgets. It defines every key of every built-in control:
      * <ul>
      *     <li>buttons use {@code widget/button}, {@code widget/button_highlighted} (hovered, focused and pressed) and
      *     {@code widget/button_disabled}, with white shadowed captions, gray when disabled;</li>

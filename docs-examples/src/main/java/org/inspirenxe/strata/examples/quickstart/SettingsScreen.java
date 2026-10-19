@@ -3,15 +3,15 @@ package org.inspirenxe.strata.examples.quickstart;
 // --8<-- [start:screen]
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.screen.Screen;
 import org.inspirenxe.strata.api.theme.Paint;
-import org.inspirenxe.strata.api.widget.Button;
-import org.inspirenxe.strata.api.widget.Label;
-import org.inspirenxe.strata.api.widget.TextBox;
 
 /**
  * A small form: a text box, a button and a status line, centered on the screen.
