@@ -493,6 +493,6 @@ Nothing has run inside a Minecraft client yet. Minecraft drawing (item rendering
 - Narration of Strata components. Vanilla narrates the screen's title only.
 - Controller and gamepad navigation.
 - Tooltip images, such as a bundle's contents, in item tooltips.
-- Interactive item slots and inventories, with pickup, placing, drag-splitting and shift-click. The design is proposed in [DESIGN.md](DESIGN.md#8-item-slots-and-inventories-proposed-for-review) and waits for review. Item lists that only show stacks, such as a shop's, work today with `ItemDisplay` or item visuals in a `ListView` or `GridView`.
+- Interactive item slots and inventories, with pickup, placing, drag-splitting and shift-click. The design is proposed in [DESIGN.md](DESIGN.md#8-item-slots-and-inventories-proposed-for-review) and waits for review. It keeps vanilla's container screen, so recipe viewers and inventory mods keep working, and lets a screen draw its slots through Strata unless the player turns that off. Item lists that only show stacks, such as a shop's, work today with `ItemDisplay` or item visuals in a `ListView` or `GridView`.
 - Drawing beyond fills, gradients, sprites, text and items. Vanilla offers no public hook for custom GUI geometry, and Fabric has none at all.
 - Changing a `StrataScreen`'s theme after it is created. `StrataScreen` takes its theme in the constructor and has no setter, although a `ThemeRef` follows resource reloads.
