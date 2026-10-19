@@ -94,6 +94,9 @@ public final class MinecraftThemes {
      *     {@code widget/slider_highlighted} when on, and the handle sprites for the knob;</li>
      *     <li>expanders use the button sprites for their header;</li>
      *     <li>slot grids use {@code container/slot}, with vanilla's white hover highlight over the item;</li>
+     *     <li>the slots of a {@link StrataContainerScreen} use {@code container/slot}, and in Strata mode
+     *     {@code container/slot_highlight_back} and {@code container/slot_highlight_front}, as vanilla's container
+     *     screens do;</li>
      *     <li>menus are near-black with a white highlight, and table headers translucent black;</li>
      *     <li>spinners, text areas, trees and split panes add no keys: they use the button, text box, list and
      *     separator keys;</li>
@@ -207,6 +210,9 @@ public final class MinecraftThemes {
                 .paint(Window.STYLE_GRIP, Paint.solid(0xFFA0A0A0))
                 .paint(Window.STYLE_GRIP_HOVERED, Paint.solid(0xFFFFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
+                .paint(MenuPanel.STYLE_SLOT, Paint.sprite(sprite("container/slot")))
+                .paint(MenuPanel.STYLE_HIGHLIGHT_BACK, Paint.sprite(sprite("container/slot_highlight_back")))
+                .paint(MenuPanel.STYLE_HIGHLIGHT_FRONT, Paint.sprite(sprite("container/slot_highlight_front")))
                 .build();
     }
 
