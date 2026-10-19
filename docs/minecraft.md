@@ -117,6 +117,10 @@ Without an `.mcmeta`, Minecraft stretches the image like a plain sprite, so a ni
 | Slider | `widget/slider` for the track, `widget/slider_highlighted` while focused, `widget/slider_handle` for the thumb, `widget/slider_handle_highlighted` while hovered, focused or pressed. No disabled sprites. | White with a shadow, `0xFFA0A0A0` when disabled |
 | Scroll panel | `widget/scroller` for the thumb, `widget/scroller_background` for the track | |
 | Label | | White with a shadow |
+| Radio button | The check box sprites, so a selected button shows vanilla's check mark | White with a shadow, `0xFFA0A0A0` when disabled |
+| Toggle switch | `widget/slider` for the track when off, `widget/slider_highlighted` when on, `widget/slider_handle` and `widget/slider_handle_highlighted` for the knob | White with a shadow, `0xFFA0A0A0` when disabled |
+| Expander | `widget/button` for the header, `widget/button_highlighted` when hovered or focused | White with a shadow, `0xFFA0A0A0` when disabled |
+| Slot grid | `container/slot` for each slot, with vanilla's white highlight over the hovered and selected slot | |
 
 There is no separate pressed sprite in vanilla, so a pressed button looks hovered. The default check box size (17, the line height of 9 plus 8), the slider's height (20) and its thumb width (8) match vanilla's widgets. Strata's scroll panels also follow vanilla: a wheel notch scrolls 10 units, and the thumb is at least 32 units long and at most the track minus 8.
 
@@ -179,8 +183,32 @@ Every key the theme sets:
 | `progress.text` | `0xFFFFFFFF` with shadow |
 | `separator` | solid `0xB9FFFFFF` |
 | `overlay.backdrop` | solid `0x60000000` |
+| `radio.normal`, `radio.hovered` | sprites `minecraft:widget/checkbox`, `minecraft:widget/checkbox_highlighted` |
+| `radio.selected`, `radio.selected.hovered` | sprites `minecraft:widget/checkbox_selected`, `minecraft:widget/checkbox_selected_highlighted` |
+| `radio.text` | `0xFFFFFFFF` with shadow |
+| `radio.text.disabled` | `0xFFA0A0A0` with shadow |
+| `toggle.track` | nine-slice `minecraft:widget/slider`, border 1 |
+| `toggle.track.on` | nine-slice `minecraft:widget/slider_highlighted`, border 1 |
+| `toggle.knob` | nine-slice `minecraft:widget/slider_handle`, border 2 (3 at the bottom) |
+| `toggle.knob.hovered` | nine-slice `minecraft:widget/slider_handle_highlighted`, border 2 (3 at the bottom) |
+| `toggle.text` | `0xFFFFFFFF` with shadow |
+| `toggle.text.disabled` | `0xFFA0A0A0` with shadow |
+| `table.header` | solid `0x80000000` |
+| `table.header.hovered` | solid `0x30FFFFFF` |
+| `table.header.text` | `0xFFFFFFFF` with shadow |
+| `table.grid` | solid `0x40FFFFFF` |
+| `menu.background` | solid `0xF0101010` |
+| `menu.item.hovered` | solid `0x60FFFFFF` |
+| `menu.text` | `0xFFFFFFFF` with shadow |
+| `menu.text.disabled` | `0xFFA0A0A0` with shadow |
+| `expander.header` | nine-slice `minecraft:widget/button`, border 3 |
+| `expander.header.hovered` | nine-slice `minecraft:widget/button_highlighted`, border 3 |
+| `expander.text` | `0xFFFFFFFF` with shadow |
+| `expander.text.disabled` | `0xFFA0A0A0` with shadow |
+| `slot.normal` | sprite `minecraft:container/slot` |
+| `slot.hovered` | solid `0x80FFFFFF` |
 
-`button.focus` and `checkbox.focus` are not set, so vanilla-themed buttons and check boxes show focus through their hovered sprites only. Vanilla's check box sprites include the check mark, so `checkbox.mark` is not set either, and vanilla has no disabled check box or slider sprites. Vanilla has no sprites for list rows, progress bars or separators, so they are plain colors. The tooltip keys are not set, so tooltips use Strata's fallback, a dark box with a purple edge in vanilla's classic tooltip colors. The borders match the sprites' `.png.mcmeta` files in 26.3. Minecraft reads the `.mcmeta`; other engines use the borders.
+`button.focus` and `checkbox.focus` are not set, so vanilla-themed buttons and check boxes show focus through their hovered sprites only. Vanilla's check box sprites include the check mark, so `checkbox.mark` is not set either, and vanilla has no disabled check box or slider sprites. Vanilla has no sprites for list rows, progress bars, separators, menus or table headers, so they are plain colors. Spinners, text areas, trees, split panes and menu bars set no keys of their own: they fall back to the button, text box, list, separator and menu keys. Toasts use the tooltip fallback too. The tooltip keys are not set, so tooltips use Strata's fallback, a dark box with a purple edge in vanilla's classic tooltip colors. The borders match the sprites' `.png.mcmeta` files in 26.3. Minecraft reads the `.mcmeta`; other engines use the borders.
 
 ### Themes from resource packs
 

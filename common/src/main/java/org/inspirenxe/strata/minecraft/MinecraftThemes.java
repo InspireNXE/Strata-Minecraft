@@ -11,13 +11,19 @@ import org.inspirenxe.strata.api.theme.ThemeId;
 import org.inspirenxe.strata.api.widget.Button;
 import org.inspirenxe.strata.api.widget.CheckBox;
 import org.inspirenxe.strata.api.widget.ComboBox;
+import org.inspirenxe.strata.api.widget.Expander;
 import org.inspirenxe.strata.api.widget.Label;
 import org.inspirenxe.strata.api.widget.ListView;
+import org.inspirenxe.strata.api.widget.Menu;
 import org.inspirenxe.strata.api.widget.ProgressBar;
+import org.inspirenxe.strata.api.widget.RadioButton;
 import org.inspirenxe.strata.api.widget.Separator;
 import org.inspirenxe.strata.api.widget.Slider;
+import org.inspirenxe.strata.api.widget.SlotGrid;
 import org.inspirenxe.strata.api.widget.TabBar;
+import org.inspirenxe.strata.api.widget.TableView;
 import org.inspirenxe.strata.api.widget.TextBox;
+import org.inspirenxe.strata.api.widget.ToggleSwitch;
 import org.inspirenxe.strata.api.widget.Window;
 
 /**
@@ -64,6 +70,14 @@ public final class MinecraftThemes {
      *     <li>tab bars use {@code widget/tab}, {@code widget/tab_highlighted} and {@code widget/tab_selected};</li>
      *     <li>windows use {@code popup/background}, the frame of vanilla's popup screens, with no title bar paint;</li>
      *     <li>combo boxes use the button sprites, over a near-black list;</li>
+     *     <li>radio buttons use the check box sprites, so a selected one shows vanilla's check mark;</li>
+     *     <li>toggle switches use the slider sprites: {@code widget/slider} for the track when off,
+     *     {@code widget/slider_highlighted} when on, and the handle sprites for the knob;</li>
+     *     <li>expanders use the button sprites for their header;</li>
+     *     <li>slot grids use {@code container/slot}, with vanilla's white hover highlight over the item;</li>
+     *     <li>menus are near-black with a white highlight, and table headers translucent black;</li>
+     *     <li>spinners, text areas, trees and split panes add no keys: they use the button, text box, list and
+     *     separator keys;</li>
      *     <li>list rows, progress bars, separators and the dialog backdrop use plain colors, since vanilla has no
      *     sprites for them. Tooltips use Strata's fallback, vanilla's classic dark tooltip colors.</li>
      * </ul>
@@ -127,6 +141,32 @@ public final class MinecraftThemes {
                 .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
                 .textStyle(ProgressBar.STYLE_TEXT, text)
                 .paint(Separator.STYLE_LINE, Paint.solid(0xB9FFFFFF))
+                .paint(RadioButton.STYLE_NORMAL, Paint.sprite(sprite("widget/checkbox")))
+                .paint(RadioButton.STYLE_HOVERED, Paint.sprite(sprite("widget/checkbox_highlighted")))
+                .paint(RadioButton.STYLE_SELECTED, Paint.sprite(sprite("widget/checkbox_selected")))
+                .paint(RadioButton.STYLE_SELECTED_HOVERED, Paint.sprite(sprite("widget/checkbox_selected_highlighted")))
+                .textStyle(RadioButton.STYLE_TEXT, text)
+                .textStyle(RadioButton.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
+                .paint(ToggleSwitch.STYLE_TRACK, Paint.nineSlice(sprite("widget/slider"), SLIDER_BORDER))
+                .paint(ToggleSwitch.STYLE_TRACK_ON, Paint.nineSlice(sprite("widget/slider_highlighted"), SLIDER_BORDER))
+                .paint(ToggleSwitch.STYLE_KNOB, Paint.nineSlice(sprite("widget/slider_handle"), SLIDER_HANDLE_BORDER))
+                .paint(ToggleSwitch.STYLE_KNOB_HOVERED, Paint.nineSlice(sprite("widget/slider_handle_highlighted"), SLIDER_HANDLE_BORDER))
+                .textStyle(ToggleSwitch.STYLE_TEXT, text)
+                .textStyle(ToggleSwitch.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
+                .paint(TableView.STYLE_HEADER, Paint.solid(0x80000000))
+                .paint(TableView.STYLE_HEADER_HOVERED, Paint.solid(0x30FFFFFF))
+                .textStyle(TableView.STYLE_HEADER_TEXT, text)
+                .paint(TableView.STYLE_GRID, Paint.solid(0x40FFFFFF))
+                .paint(Menu.STYLE_BACKGROUND, Paint.solid(0xF0101010))
+                .paint(Menu.STYLE_ITEM_HOVERED, Paint.solid(0x60FFFFFF))
+                .textStyle(Menu.STYLE_TEXT, text)
+                .textStyle(Menu.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
+                .paint(Expander.STYLE_HEADER, Paint.nineSlice(sprite("widget/button"), BUTTON_BORDER))
+                .paint(Expander.STYLE_HEADER_HOVERED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))
+                .textStyle(Expander.STYLE_TEXT, text)
+                .textStyle(Expander.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
+                .paint(SlotGrid.STYLE_SLOT, Paint.sprite(sprite("container/slot")))
+                .paint(SlotGrid.STYLE_SLOT_HOVERED, Paint.solid(0x80FFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
                 .build();
     }
