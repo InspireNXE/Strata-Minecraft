@@ -1,19 +1,17 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
-import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.core.component.DataComponentInitializers;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.registries.VanillaRegistries;
+import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.Bootstrap;
+import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.component.CursorKind;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.geom.Rect;
@@ -34,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -52,14 +51,12 @@ class MinecraftCanvasTest {
     private Font font;
     private Matrix3x2fStack pose;
     private MinecraftCanvas canvas;
+    private ResolvableProfile resolved;
 
     @BeforeAll
     static void bootstrap() {
         // Item stacks need vanilla's registries and their items' default components, which a world load binds
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(VanillaRegistries.createWorldLookup())
-                .forEach(DataComponentInitializers.PendingComponents::apply);
+        VanillaBootstrap.run();
     }
 
     @BeforeEach
@@ -68,7 +65,10 @@ class MinecraftCanvasTest {
         this.font = mock(Font.class);
         this.pose = new Matrix3x2fStack(16);
         when(this.graphics.pose()).thenReturn(this.pose);
-        this.canvas = new MinecraftCanvas(this.font);
+        this.canvas = new MinecraftCanvas(this.font, profile -> {
+            this.resolved = profile;
+            return DefaultPlayerSkin.get(profile.partialProfile());
+        });
         this.canvas.begin(this.graphics);
     }
 
@@ -256,5 +256,61 @@ class MinecraftCanvasTest {
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 5)), visual, "counts differ");
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.EMERALD, 3)), visual, "items differ");
         assertNotEquals(MinecraftVisuals.item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.NONE), visual, "decorations differ");
+    }
+
+    @Test
+    void playerFacesDrawTheFaceAndHatFromTheSkin() {
+        final PlayerSkin skin = DefaultPlayerSkin.getDefaultSkin();
+        final Identifier texture = skin.body().texturePath();
+
+        this.canvas.visual(MinecraftVisuals.playerFace(skin), new Rect(10.5f, 20f, 16f, 16f), 0xFFFFFFFF);
+
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 8f, 8f, 17, 16, 8, 8, 64, 64, 0xFFFFFFFF);
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 40f, 8f, 17, 16, 8, 8, 64, 64, 0xFFFFFFFF);
+    }
+
+    @Test
+    void playerFacesCanSkipTheHatAndKeepTheirTint() {
+        final PlayerSkin skin = DefaultPlayerSkin.getDefaultSkin();
+
+        this.canvas.visual(MinecraftVisuals.playerFace(skin, false), new Rect(0, 0, 8, 8), 0x80FFFFFF);
+
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, skin.body().texturePath(), 0, 0, 8f, 8f, 8, 8, 8, 8, 64, 64, 0x80FFFFFF);
+        verify(this.graphics, never()).blit(any(), any(Identifier.class), anyInt(), anyInt(), eq(40f), anyFloat(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    void profileFacesLookTheSkinUpWhenDrawn() {
+        final ResolvableProfile profile = ResolvableProfile.createUnresolved("Ana");
+        final Visual face = MinecraftVisuals.playerFace(profile);
+
+        this.canvas.visual(face, new Rect(0, 0, 8, 8), 0xFFFFFFFF);
+
+        assertEquals(profile, this.resolved, "the canvas asks for the profile's skin");
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, DefaultPlayerSkin.get(profile.partialProfile()).body().texturePath(),
+                0, 0, 8f, 8f, 8, 8, 8, 8, 64, 64, 0xFFFFFFFF);
+    }
+
+    @Test
+    void transparentOrEmptyFacesDrawNothing() {
+        this.canvas.visual(MinecraftVisuals.playerFace(DefaultPlayerSkin.getDefaultSkin()), new Rect(0, 0, 8, 8), 0x00FFFFFF);
+        this.canvas.visual(MinecraftVisuals.playerFace(DefaultPlayerSkin.getDefaultSkin()), new Rect(0, 0, 0, 8), 0xFFFFFFFF);
+
+        verify(this.graphics, never()).blit(any(), any(Identifier.class), anyInt(), anyInt(), anyFloat(), anyFloat(),
+                anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    void playerFaceVisualsCompareByWhatTheyDraw() {
+        final PlayerSkin skin = DefaultPlayerSkin.getDefaultSkin();
+
+        assertEquals(MinecraftVisuals.PLAYER_FACE_SIZE, MinecraftVisuals.playerFace(skin).size());
+        assertEquals(MinecraftVisuals.playerFace(skin), MinecraftVisuals.playerFace(skin, true));
+        assertNotEquals(MinecraftVisuals.playerFace(skin), MinecraftVisuals.playerFace(skin, false), "the hat differs");
+        assertEquals(MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")),
+                MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")));
+        assertNotEquals(MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")),
+                MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ben")));
     }
 }

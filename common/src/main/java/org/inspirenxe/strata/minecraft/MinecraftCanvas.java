@@ -2,12 +2,15 @@ package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
+import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.component.CursorKind;
 import org.inspirenxe.strata.api.geom.Insets;
 import org.inspirenxe.strata.api.geom.Rect;
@@ -16,10 +19,13 @@ import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.ProfileFaceVisual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.SkinFaceVisual;
 import org.inspirenxe.strata.spi.Canvas;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * The Minecraft {@link Canvas}: records Strata's drawing into vanilla's {@link GuiGraphicsExtractor}, which renders
@@ -39,7 +45,9 @@ import java.util.Map;
  *     strikethrough and shadow.</li>
  *     <li>Clips use vanilla's scissor stack, which intersects nested clips and follows the pose. Translations and
  *     scales push and pop the pose matrix.</li>
- *     <li>Visuals draw as a magenta placeholder until the adapter makes visuals of its own.</li>
+ *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
+ *     visuals draw the face and hat from the skin texture with vanilla's {@code GUI_TEXTURED} pipeline, stretched
+ *     over the rectangle rounded outward and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so later screens draw over blur and earlier
  *     layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
@@ -55,6 +63,7 @@ public final class MinecraftCanvas implements Canvas {
 
     private final Map<SpriteId, Identifier> identifiers;
     private final MinecraftTextMetrics textMetrics;
+    private final Function<ResolvableProfile, PlayerSkin> skins;
     private GuiGraphicsExtractor graphics;
 
     /**
@@ -63,8 +72,19 @@ public final class MinecraftCanvas implements Canvas {
      * @param font the font text is drawn and measured with, usually the screen's
      */
     public MinecraftCanvas(final Font font) {
+        this(font, profile -> Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin());
+    }
+
+    /**
+     * Creates a canvas that looks player skins up with the given function, for tests.
+     *
+     * @param font the font text is drawn and measured with
+     * @param skins returns the skin to draw for a profile, at once
+     */
+    MinecraftCanvas(final Font font, final Function<ResolvableProfile, PlayerSkin> skins) {
         this.identifiers = new HashMap<>();
         this.textMetrics = new MinecraftTextMetrics(font);
+        this.skins = skins;
     }
 
     /**
@@ -148,10 +168,16 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void visual(final Visual visual, final Rect rect, final int tint) {
-        if (!(visual instanceof ItemVisual(final ItemStack stack, final ItemDecorations decorations))) {
-            this.fill(rect, MISSING_VISUAL_COLOR);
-            return;
+        switch (visual) {
+            case ItemVisual(final ItemStack stack, final ItemDecorations decorations) -> this.item(stack, decorations, rect, tint);
+            case ProfileFaceVisual(final ResolvableProfile profile, final boolean hat) ->
+                    this.playerFace(this.skins.apply(profile), hat, rect, tint);
+            case SkinFaceVisual(final PlayerSkin skin, final boolean hat) -> this.playerFace(skin, hat, rect, tint);
+            default -> this.fill(rect, MISSING_VISUAL_COLOR);
         }
+    }
+
+    private void item(final ItemStack stack, final ItemDecorations decorations, final Rect rect, final int tint) {
         if ((tint >>> 24) == 0 || stack.isEmpty() || rect.width() <= 0f || rect.height() <= 0f) {
             return;
         }
@@ -164,6 +190,22 @@ public final class MinecraftCanvas implements Canvas {
             this.itemDecorations(stack, decorations);
         } finally {
             this.graphics.pose().popMatrix();
+        }
+    }
+
+    private void playerFace(final PlayerSkin skin, final boolean hat, final Rect rect, final int tint) {
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if ((tint >>> 24) == 0 || width <= 0 || height <= 0) {
+            return;
+        }
+        // The face and the hat as vanilla's PlayerFaceExtractor reads them from a 64 by 64 skin
+        final Identifier texture = skin.body().texturePath();
+        this.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 8f, 8f, width, height, 8, 8, 64, 64, tint);
+        if (hat) {
+            this.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 40f, 8f, width, height, 8, 8, 64, 64, tint);
         }
     }
 

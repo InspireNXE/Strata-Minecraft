@@ -253,7 +253,28 @@ Text draws in the screen's font, which follows the player's resource packs.
 
 `MinecraftTextMetrics` measures with `Font.width` and `Font.lineHeight`. Widths are whole GUI pixels, including vanilla's extra pixel for bold, and the line height is the font's, 9 for the default font. Text that just fits in Swing may wrap or overflow in game, so let components measure and leave slack in fixed widths around text.
 
-Avoid vanilla's `§` formatting codes in Strata text. Strata does not interpret them, and vanilla's text drawing may, so the same text would look different in Swing and in game.
+Avoid vanilla's `§` formatting codes in Strata text. Strata does not interpret them, and vanilla's text drawing may, so the same text would look different in Swing and in game. Convert formatted text to spans instead, as the next section shows.
+
+### Formatted text
+
+`MinecraftText.spans` turns a vanilla `Component`, or a string with `§` codes, into the styled spans a `Label` shows with `setSpans`:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:text"
+```
+
+Spans carry their own style, so the conversion lays the vanilla style over a base style you choose:
+
+| From vanilla | In the spans |
+|---|---|
+| Color | Replaces the base's color and keeps the base's alpha |
+| Bold, italic, underline, strikethrough | Replace the base's when set, true or false; unset ones come from the base |
+| `§` codes | Applied as vanilla applies them when it draws. A color code clears bold, italic, underline and strikethrough, and `§r` goes back to the style of the component the code is in, or to the base in a plain string. The codes themselves are dropped. |
+| Shadow | Always the base's |
+| Obfuscated text | Plain text |
+| Fonts, shadow colors, click and hover events | Dropped |
+
+The base defaults to `MinecraftText.DEFAULT_STYLE`, white with a shadow, which is how the vanilla theme draws labels. Pass another base for other text, such as the theme's gray for disabled text. A `\n` stays in the span, where the label starts a new line. Translatable components resolve in the player's language when you convert them, so convert again if the language changes while the screen is open.
 
 ## Items
 
@@ -277,13 +298,43 @@ The stack is copied when the visual is made, so later changes to it do not show.
 
 `MinecraftTooltips.item(stack)` asks vanilla for the stack's tooltip lines, the same ones a slot shows. It reads the advanced tooltips setting (F3+H) when it is called, so the lines include vanilla's extra ones, such as the item id, while it is on. The lines become a Strata `Tooltip.lines` tooltip:
 
-- Each run keeps its color, bold, italic, underline and strikethrough. Text without a color is white.
+- Each run keeps its color, bold, italic, underline and strikethrough, and `§` codes apply as vanilla applies them. Text without a color is white.
 - Every run has a shadow, as vanilla tooltip text does.
 - Obfuscated text shows as plain text. Custom fonts and shadow colors are dropped.
 
-The tooltip is drawn by Strata on the theme's `tooltip.background`, or on the classic dark box with a purple edge when the theme has no such key, as `MinecraftThemes.vanilla()` does. It is built once, so build it again when the stack changes, or when the player toggles F3+H and you want the new lines. `MinecraftTooltips.lines` and `MinecraftTooltips.spans` convert any vanilla `Component`s the same way, for tooltips and labels of your own.
+The tooltip is drawn by Strata on the theme's `tooltip.background`, or on the classic dark box with a purple edge when the theme has no such key, as `MinecraftThemes.vanilla()` does. It is built once, so build it again when the stack changes, or when the player toggles F3+H and you want the new lines; an `ItemDisplay` does this for you. `MinecraftTooltips.lines` and `MinecraftTooltips.spans` convert any vanilla `Component`s the same way, for tooltips of your own. For labels, use `MinecraftText` (see [Formatted text](#formatted-text)).
 
 Tooltip images are not drawn yet. A bundle shows its text lines but not its grid of contents, and the extra gap vanilla leaves below an item's name is missing.
+
+### Item displays
+
+`ItemDisplay`, in `org.inspirenxe.strata.minecraft.control`, is a component for one stack, like vanilla's `ItemDisplayWidget`. It keeps the item and its tooltip in step, which an `Image` with an item visual leaves to you:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:display"
+```
+
+- It is 16 by 16 unless you size it. In larger bounds the item draws as the largest square that fits, centered, so it never stretches out of shape.
+- `setStack` copies the stack, and `stack()` returns a copy. An empty stack draws nothing and has no tooltip.
+- The tooltip is made each time the pointer enters the display, and again when the stack changes under the pointer, so it follows F3+H. The default tooltip function is `MinecraftTooltips.item`. Return extra lines from your own function, as above, or set it to `null` and call `setTooltip` yourself.
+- `setDecorations` picks the count and damage bar, as for item visuals, and `setTint` with an alpha of 0 hides the item.
+- It takes no clicks and has no events. Clicks go through to whatever holds it, such as a list row. Interactive slots are not built yet (see [Not available yet](#not-available-yet)).
+
+## Player faces
+
+`MinecraftVisuals.playerFace` makes a visual of a player's head from their skin, the face with the hat layer over it, as vanilla's player list and social screen draw it. Show it with an `Image`:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:face"
+```
+
+| Made from | Skin drawn |
+|---|---|
+| `GameProfile`, such as `player.getGameProfile()` | The profile's skin, looked up through vanilla's skin cache |
+| `ResolvableProfile`, such as `ResolvableProfile.createUnresolved(name)` | Looked up in the background, in the server's player list first and then through Mojang's services. Until it arrives, the built-in skin vanilla picks for the profile's id shows. |
+| `PlayerSkin`, such as one of `DefaultPlayerSkin`'s | That skin's texture |
+
+The canvas asks vanilla's skin cache every time it draws a profile's face, so the face changes to the real skin by itself once it has loaded, with no new visual. Pass `false` as the second argument to leave the hat layer out. A face is 8 by 8 UI units, one skin pixel each, and stretches to the size it is drawn at; set the image size for a larger face. Unlike items, faces take the image's tint.
 
 ## Input
 
@@ -426,7 +477,9 @@ Not yet. Both directions are planned as hosting adapters. See [Not available yet
 |---|---|
 | Input mapping | Against every key constant in the real 26.3 `InputConstants` |
 | The canvas | Against a mocked `GuiGraphicsExtractor`, including item visuals made from real item stacks |
-| Item tooltips | Styling against real chat components |
+| Item tooltips and formatted text | Styling and `§` codes against real chat components |
+| Player faces | Against a mocked `GuiGraphicsExtractor`, with vanilla's default skins and the skin lookup replaced |
+| `ItemDisplay` | In a real Strata host over a mocked platform, with real item stacks |
 | The vanilla theme | It defines every key the built-in controls require |
 | Loader packaging | The processed mod metadata and the NeoForge entry point |
 | The examples on this page | `docs-examples` compiles them against `common` and the vanilla classes |
@@ -440,5 +493,6 @@ Nothing has run inside a Minecraft client yet. Minecraft drawing (item rendering
 - Narration of Strata components. Vanilla narrates the screen's title only.
 - Controller and gamepad navigation.
 - Tooltip images, such as a bundle's contents, in item tooltips.
+- Interactive item slots and inventories, with pickup, placing, drag-splitting and shift-click. The design is proposed in [DESIGN.md](DESIGN.md#8-item-slots-and-inventories-proposed-for-review) and waits for review. Item lists that only show stacks, such as a shop's, work today with `ItemDisplay` or item visuals in a `ListView` or `GridView`.
 - Drawing beyond fills, gradients, sprites, text and items. Vanilla offers no public hook for custom GUI geometry, and Fabric has none at all.
 - Changing a `StrataScreen`'s theme after it is created. `StrataScreen` takes its theme in the constructor and has no setter, although a `ThemeRef` follows resource reloads.
