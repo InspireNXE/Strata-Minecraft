@@ -121,6 +121,7 @@ Without an `.mcmeta`, Minecraft stretches the image like a plain sprite, so a ni
 | Toggle switch | `widget/slider` for the track when off, `widget/slider_highlighted` when on, `widget/slider_handle` and `widget/slider_handle_highlighted` for the knob | White with a shadow, `0xFFA0A0A0` when disabled |
 | Expander | `widget/button` for the header, `widget/button_highlighted` when hovered or focused | White with a shadow, `0xFFA0A0A0` when disabled |
 | Grid view | `container/slot` for each cell, with vanilla's white highlight over the hovered and selected cell | |
+| Container screen slots | `container/slot` behind each slot; in Strata mode `container/slot_highlight_back` and `container/slot_highlight_front` around the hovered one | |
 
 There is no separate pressed sprite in vanilla, so a pressed button looks hovered. The default check box size (17, the line height of 9 plus 8), the slider's height (20) and its thumb width (8) match vanilla's widgets. Strata's scroll panels also follow vanilla: a wheel notch scrolls 10 units, and the thumb is at least 32 units long and at most the track minus 8.
 
@@ -220,6 +221,8 @@ Every key the theme sets:
 | `duallist.title` | `0xFFFFFFFF` with shadow |
 | `colorpicker.frame`, `colorpicker.marker`, `colorpicker.marker.outline`, `colorpicker.disabled` | solid `0xFFA0A0A0`, `0xFFFFFFFF`, `0xFF000000` and `0xA0000000`; vanilla has no color picker |
 | `window.grip`, `window.grip.hovered` | solid `0xFFA0A0A0` and `0xFFFFFFFF`; vanilla has no grip sprite |
+| `slot.background` | sprite `minecraft:container/slot` |
+| `slot.highlight_back`, `slot.highlight_front` | sprites `minecraft:container/slot_highlight_back` and `minecraft:container/slot_highlight_front` |
 
 `button.focus` and `checkbox.focus` are not set, so vanilla-themed buttons and check boxes show focus through their hovered sprites only. Vanilla's check box sprites include the check mark, so `checkbox.mark` is not set either, and vanilla has no disabled check box or slider sprites. Vanilla has no sprites for list rows, progress bars, separators, menus or table headers, so they are plain colors. Spinners, text areas, trees, split panes and menu bars set no keys of their own: they fall back to the button, text box, list, separator and menu keys. Toasts use the tooltip fallback too. The tooltip keys are not set, so tooltips use Strata's fallback, a dark box with a purple edge in vanilla's classic tooltip colors. The borders match the sprites' `.png.mcmeta` files in 26.3. Minecraft reads the `.mcmeta`; other engines use the borders.
 
@@ -349,6 +352,49 @@ Tooltip images are not drawn yet. A bundle shows its text lines but not its grid
 
 The canvas asks vanilla's skin cache every time it draws a profile's face, so the face changes to the real skin by itself once it has loaded, with no new visual. Pass `false` as the second argument to leave the hat layer out. A face is 8 by 8 UI units, one skin pixel each, and stretches to the size it is drawn at; set the image size for a larger face. Unlike items, faces take the image's tint.
 
+## Container screens
+
+`StrataContainerScreen` shows a menu's slots inside a Strata screen, for machines, storage and anything else a server opens with `player.openMenu`. The mod writes its `AbstractContainerMenu` exactly as for vanilla, and registers the Strata screen for the menu's type the usual way:
+
+```java
+--8<-- "minecraft/MinecraftExamples.java:container"
+```
+
+```java
+// NeoForge, in RegisterMenuScreensEvent
+event.register(ExampleMenus.CRATE, MinecraftExamples::crateScreen);
+// Fabric, in the client entry point; Fabric API opens MenuScreens.register to mods
+MenuScreens.register(ExampleMenus.CRATE, MinecraftExamples::crateScreen);
+```
+
+The screen is an ordinary vanilla `AbstractContainerScreen`, so recipe viewers (JEI, REI, EMI), inventory sorters, Mouse Tweaks and any server, including plugin servers and servers without Strata, treat it as any container screen:
+
+- The content builder gets a `MenuPanel`, the area that holds the menu's slots. Put it anywhere in the tree except inside a `ScrollPanel`. Its size is the screen's image size, and vanilla's `leftPos` and `topPos` follow its position, so each slot sits where the menu's constructor put it, relative to the panel's top-left corner.
+- Clicks, drag-splitting, shift-clicks, double-clicks and the hotbar, drop, pick-block and inventory keys are vanilla's own code, with the player's key bindings. Strata sees every press first, so popups close and focus moves as usual. The press then also goes to vanilla when the pointer is over the panel, the tree's root or nothing, and no modal dialog is open. Keys go to vanilla when Strata does not use them and no modal dialog is open.
+- The carried stack floats over everything, and slot tooltips are vanilla's, with tooltip images such as a bundle's contents. A slot's tooltip does not show while a modal dialog is open or something of Strata's is over it.
+- Vanilla's title and inventory labels are not drawn. Put your own labels in the tree.
+
+Who draws the slots is a choice:
+
+| | `SlotRendering.VANILLA`, the default | `SlotRendering.STRATA` |
+|---|---|---|
+| Drawn by | Vanilla's container drawing, run from inside the panel | The panel, from the theme's `slot.*` keys and item visuals |
+| What other mods draw on slots | Shown | Not shown on this screen |
+| Restyled by | Resource packs, as for vanilla screens | Strata themes and pack theme files |
+
+Both modes draw `slot.background` behind every active slot, since the screen has no vanilla background texture. Strata mode draws the highlight, the item, an empty slot's icon (such as an armor outline) and the counts a drag would leave, as vanilla does. Fake slots draw like real ones there, and bundles are not told when the pointer leaves them.
+
+Players can force vanilla drawing. Strata writes `config/strata-client.json` the first time a container screen opens:
+
+```json
+{
+    "forceVanillaSlots": false,
+    "forceVanillaSlotsFor": []
+}
+```
+
+`"forceVanillaSlots": true` makes every Strata container screen draw its slots through vanilla. `"forceVanillaSlotsFor"` lists menu type ids, such as `"examplemod:grinder"`, for single screens. The file is read each time a screen opens, so changes need no restart. `slotRendering()` on the screen and on its `MenuPanel` reports the mode in use.
+
 ## Input
 
 `StrataScreen` forwards vanilla's input callbacks to its host. Input Strata does not use goes on to vanilla's `Screen` handling.
@@ -449,7 +495,7 @@ Because `StrataScreen` is an ordinary vanilla screen, loader screen events, such
 
 ### Does Strata need Fabric API?
 
-No. The Fabric jar depends only on Fabric Loader, Minecraft and Java.
+No. The Fabric jar depends only on Fabric Loader, Minecraft and Java. Registering a `StrataContainerScreen` for a menu type uses `MenuScreens.register`, which Fabric API opens to mods, so a Fabric mod with container screens needs Fabric API itself.
 
 ### Does Strata use mixins?
 
@@ -493,11 +539,13 @@ Not yet. Both directions are planned as hosting adapters. See [Not available yet
 | Item tooltips and formatted text | Styling and `§` codes against real chat components |
 | Player faces | Against a mocked `GuiGraphicsExtractor`, with vanilla's default skins and the skin lookup replaced |
 | `ItemDisplay` | In a real Strata host over a mocked platform, with real item stacks |
+| `MenuPanel` | Drawing in both slot modes, drag previews and which pointer input goes to vanilla, in a real Strata host with a real menu |
+| Client settings | Parsing, broken files and writing the defaults |
 | The vanilla theme | It defines every key the built-in controls require |
 | Loader packaging | The processed mod metadata and the NeoForge entry point |
 | The examples on this page | `docs-examples` compiles them against `common` and the vanilla classes |
 
-Nothing has run inside a Minecraft client yet. Minecraft drawing (item rendering included), vanilla's handling of small nine-slices, text input focus and mod loading on both loaders are covered only by compiling against the real classes and by unit tests with mocks. Publishing to Maven and depending on Strata from a separate mod project have not been tried.
+Nothing has run inside a Minecraft client yet. `StrataContainerScreen` needs a running game, so its input routing, its drawing order and its compatibility with recipe viewers and slot-drawing mods are covered only by the `MenuPanel` tests and by compiling. Minecraft drawing (item rendering included), vanilla's handling of small nine-slices, text input focus and mod loading on both loaders are covered only by compiling against the real classes and by unit tests with mocks. Publishing to Maven and depending on Strata from a separate mod project have not been tried.
 
 ## Not available yet
 
@@ -506,6 +554,7 @@ Nothing has run inside a Minecraft client yet. Minecraft drawing (item rendering
 - Narration of Strata components. Vanilla narrates the screen's title only.
 - Controller and gamepad navigation.
 - Tooltip images, such as a bundle's contents, in item tooltips.
-- Interactive item slots and inventories, with pickup, placing, drag-splitting and shift-click. The design is proposed in [DESIGN.md](DESIGN.md#8-item-slots-and-inventories-proposed-for-review) and waits for review. It keeps vanilla's container screen, so recipe viewers and inventory mods keep working, and lets a screen draw its slots through Strata unless the player turns that off. Item lists that only show stacks, such as a shop's, work today with `ItemDisplay` or item visuals in a `ListView` or `GridView`.
+- Slots that scroll or reflow with Strata's layout. Slots stay where the menu's constructor put them; page through a menu's contents with fixed slots instead, as vanilla's creative inventory does.
+- Client-only slots, such as filter or ghost slots, outside a menu.
 - Drawing beyond fills, gradients, sprites, text and items. Vanilla offers no public hook for custom GUI geometry, and Fabric has none at all.
 - Changing a `StrataScreen`'s theme after it is created. `StrataScreen` takes its theme in the constructor and has no setter, although a `ThemeRef` follows resource reloads.

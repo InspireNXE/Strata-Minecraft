@@ -4,7 +4,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.ComponentFactory;
@@ -12,6 +14,7 @@ import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.display.Image;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.geometry.Insets;
+import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
@@ -21,6 +24,8 @@ import org.inspirenxe.strata.minecraft.MinecraftText;
 import org.inspirenxe.strata.minecraft.MinecraftThemes;
 import org.inspirenxe.strata.minecraft.MinecraftTooltips;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals;
+import org.inspirenxe.strata.minecraft.SlotRendering;
+import org.inspirenxe.strata.minecraft.StrataContainerScreen;
 import org.inspirenxe.strata.minecraft.StrataScreen;
 import org.inspirenxe.strata.minecraft.control.ItemDisplay;
 
@@ -162,4 +167,22 @@ public final class MinecraftExamples {
         // --8<-- [end:text]
         return motd;
     }
+
+    // --8<-- [start:container]
+    /**
+     * A crate's screen: a three-row chest menu with the title above the slots, drawn by Strata unless the player
+     * forces vanilla drawing.
+     */
+    static StrataContainerScreen<ChestMenu> crateScreen(final ChestMenu menu, final Inventory inventory, final Component title) {
+        // 176 by 168 is vanilla's size for three rows; the menu's slot positions assume it
+        return new StrataContainerScreen<>(menu, inventory, title, 176, 168,
+                (ui, crate, slots) -> ui.anchorPanel()
+                        .add(ui.stackPanel().setSpacing(4)
+                                .add(ui.label().setSpans(MinecraftText.spans(title)))
+                                .add(slots)
+                                .setAnchor(Anchor.CENTER))
+                        .setAnchor(Anchor.FILL),
+                ThemeRef.of(MinecraftThemes.VANILLA), SlotRendering.STRATA);
+    }
+    // --8<-- [end:container]
 }

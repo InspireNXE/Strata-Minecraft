@@ -5,23 +5,15 @@ import net.minecraft.world.item.Items;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Modifiers;
-import org.inspirenxe.strata.api.text.TextMetrics;
-import org.inspirenxe.strata.api.text.TextSpan;
-import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Themes;
 import org.inspirenxe.strata.api.visual.Visual;
-import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.minecraft.MinecraftTooltips;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
+import org.inspirenxe.strata.minecraft.TestHosts;
 import org.inspirenxe.strata.minecraft.VanillaBootstrap;
 import org.inspirenxe.strata.spi.Canvas;
-import org.inspirenxe.strata.spi.Capabilities;
-import org.inspirenxe.strata.spi.Clipboard;
-import org.inspirenxe.strata.spi.Platform;
 import org.inspirenxe.strata.spi.ScreenHost;
-import org.inspirenxe.strata.spi.TextInputSink;
-import org.inspirenxe.strata.spi.ThemeSource;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +30,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Checks the item display in a real Strata host over a mocked platform, with real item stacks.
@@ -54,25 +45,7 @@ class ItemDisplayTest {
 
     @BeforeEach
     void setUp() {
-        final Platform platform = mock(Platform.class);
-        when(platform.textMetrics()).thenReturn(new TextMetrics() {
-            @Override
-            public float width(final TextSpan span) {
-                return span.text().length() * 6f;
-            }
-
-            @Override
-            public float lineHeight(final TextStyle style) {
-                return 9f;
-            }
-        });
-        when(platform.clock()).thenReturn(() -> 0L);
-        when(platform.clipboard()).thenReturn(mock(Clipboard.class));
-        when(platform.textInput()).thenReturn(mock(TextInputSink.class));
-        when(platform.capabilities()).thenReturn(new Capabilities(true));
-        when(platform.themes()).thenReturn(ThemeSource.NONE);
-        this.host = StrataCore.createScreenHost(platform, Themes.flat());
-        this.host.resize(100f, 100f);
+        this.host = TestHosts.create(Themes.flat());
         this.asked = new ArrayList<>();
     }
 

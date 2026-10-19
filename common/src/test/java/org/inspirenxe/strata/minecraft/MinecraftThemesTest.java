@@ -11,6 +11,8 @@ import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.menu.Menu;
+import org.inspirenxe.strata.api.theme.Paint;
+import org.inspirenxe.strata.api.theme.SpriteId;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -33,5 +35,12 @@ class MinecraftThemesTest {
                 ToggleSwitch.STYLE_KNOB, TableView.STYLE_HEADER, Menu.STYLE_BACKGROUND, Menu.STYLE_ITEM_HOVERED,
                 GridView.STYLE_CELL, BusyIndicator.STYLE_DOT, BusyIndicator.STYLE_DOT_ACTIVE);
         assertEquals(List.of(), List.copyOf(MinecraftThemes.vanilla().missing(required)));
+    }
+
+    @Test
+    void vanillaDrawsSlotsWithVanillasSprites() {
+        final List<String> slots = List.of(MenuPanel.STYLE_SLOT, MenuPanel.STYLE_HIGHLIGHT_BACK, MenuPanel.STYLE_HIGHLIGHT_FRONT);
+        assertEquals(List.of(), List.copyOf(MinecraftThemes.vanilla().missing(slots)));
+        assertEquals(Paint.sprite(SpriteId.of("minecraft", "container/slot")), MinecraftThemes.vanilla().paintOr(MenuPanel.STYLE_SLOT, null));
     }
 }
