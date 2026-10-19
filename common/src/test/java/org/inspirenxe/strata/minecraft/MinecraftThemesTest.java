@@ -5,6 +5,7 @@ import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.button.RadioButton;
 import org.inspirenxe.strata.api.control.button.ToggleSwitch;
 import org.inspirenxe.strata.api.control.collection.GridView;
+import org.inspirenxe.strata.api.control.display.BusyIndicator;
 import org.inspirenxe.strata.api.control.collection.TableView;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.Slider;
@@ -30,7 +31,7 @@ class MinecraftThemesTest {
                 RadioButton.STYLE_NORMAL, RadioButton.STYLE_HOVERED, RadioButton.STYLE_SELECTED,
                 RadioButton.STYLE_SELECTED_HOVERED, ToggleSwitch.STYLE_TRACK, ToggleSwitch.STYLE_TRACK_ON,
                 ToggleSwitch.STYLE_KNOB, TableView.STYLE_HEADER, Menu.STYLE_BACKGROUND, Menu.STYLE_ITEM_HOVERED,
-                GridView.STYLE_CELL);
+                GridView.STYLE_CELL, BusyIndicator.STYLE_DOT, BusyIndicator.STYLE_DOT_ACTIVE);
         assertEquals(List.of(), List.copyOf(MinecraftThemes.vanilla().missing(required)));
     }
 }

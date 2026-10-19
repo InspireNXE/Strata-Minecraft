@@ -3,7 +3,7 @@ package org.inspirenxe.strata.minecraft.control;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.inspirenxe.strata.api.component.Tooltip;
-import org.inspirenxe.strata.api.geom.Rect;
+import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.text.TextMetrics;
 import org.inspirenxe.strata.api.text.TextSpan;

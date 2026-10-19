@@ -4,7 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ResolvableProfile;
-import org.inspirenxe.strata.api.geom.Size;
+import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.visual.Visual;
 
 import java.util.Objects;

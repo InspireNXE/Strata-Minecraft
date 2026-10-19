@@ -5,19 +5,23 @@ import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.button.RadioButton;
 import org.inspirenxe.strata.api.control.button.ToggleSwitch;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
-import org.inspirenxe.strata.api.control.collection.ListView;
+import org.inspirenxe.strata.api.control.collection.DualList;
 import org.inspirenxe.strata.api.control.collection.GridView;
+import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TableView;
+import org.inspirenxe.strata.api.control.display.BusyIndicator;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.display.ProgressBar;
 import org.inspirenxe.strata.api.control.display.Separator;
+import org.inspirenxe.strata.api.control.field.ColorPicker;
 import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.menu.Menu;
 import org.inspirenxe.strata.api.control.pane.Expander;
+import org.inspirenxe.strata.api.control.pane.ScrollBar;
 import org.inspirenxe.strata.api.control.pane.TabBar;
 import org.inspirenxe.strata.api.control.window.Window;
-import org.inspirenxe.strata.api.geom.Insets;
+import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.ScrollPanel;
 import org.inspirenxe.strata.api.overlay.Overlays;
 import org.inspirenxe.strata.api.text.TextStyle;
@@ -167,6 +171,26 @@ public final class MinecraftThemes {
                 .textStyle(Expander.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .paint(GridView.STYLE_CELL, Paint.sprite(sprite("container/slot")))
                 .paint(GridView.STYLE_CELL_HOVERED, Paint.solid(0x80FFFFFF))
+                .textStyle(Button.STYLE_LINK_TEXT, text)
+                .textStyle(Button.STYLE_LINK_TEXT_HOVERED, text.withColor(0xFFFFFF55))
+                .textStyle(Button.STYLE_LINK_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
+                .paint(ScrollBar.STYLE_SLIM_TRACK, Paint.NONE)
+                .paint(ScrollBar.STYLE_SLIM_THUMB, Paint.solid(0xFF3333AA))
+                .paint(ScrollBar.STYLE_SLIM_THUMB_HOVERED, Paint.solid(0xFFCCCCCC))
+                .paint(ScrollBar.STYLE_SLIM_THUMB_DISABLED, Paint.solid(0xFF555555))
+                .paint(BusyIndicator.STYLE_DOT, Paint.solid(0xFF404040))
+                .paint(BusyIndicator.STYLE_DOT_ACTIVE, Paint.solid(0xFF808080))
+                .textStyle(BusyIndicator.STYLE_TEXT, text)
+                .paint(TextBox.STYLE_SUGGESTIONS, Paint.solid(0xD0000000))
+                .textStyle(TextBox.STYLE_SUGGESTION_TEXT, text.withColor(0xFFAAAAAA))
+                .paint(DualList.STYLE_LIST, Paint.solid(0x80000000))
+                .textStyle(DualList.STYLE_TITLE, text)
+                .paint(ColorPicker.STYLE_FRAME, Paint.solid(0xFFA0A0A0))
+                .paint(ColorPicker.STYLE_MARKER, Paint.solid(0xFFFFFFFF))
+                .paint(ColorPicker.STYLE_MARKER_OUTLINE, Paint.solid(0xFF000000))
+                .paint(ColorPicker.STYLE_DISABLED, Paint.solid(0xA0000000))
+                .paint(Window.STYLE_GRIP, Paint.solid(0xFFA0A0A0))
+                .paint(Window.STYLE_GRIP_HOVERED, Paint.solid(0xFFFFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
                 .build();
     }
