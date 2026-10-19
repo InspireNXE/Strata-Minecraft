@@ -33,7 +33,7 @@ tasks.named('test', Test) {
 }
 
 tasks.withType(Jar).configureEach {
-    from(rootProject.file('LICENSE')) {
+    from(rootProject.files('LICENSE', 'NOTICE')) {
         rename { "${it}_strata" }
     }
     manifest {

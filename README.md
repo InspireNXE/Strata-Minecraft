@@ -132,4 +132,4 @@ Both loaders can also nest one mod jar inside another: NeoForge with `jarJar`, F
 
 Strata's own documentation, for components, layout, events, themes and writing screens, is in the [Strata repository](https://github.com/InspireNXE/Strata).
 
-Strata-Minecraft is released under the MIT License.
+Strata-Minecraft is released under the Apache License, Version 2.0.
