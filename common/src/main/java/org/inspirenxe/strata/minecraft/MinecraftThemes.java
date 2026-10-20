@@ -192,6 +192,8 @@ public final class MinecraftThemes {
                 .insets(Expander.STYLE_HEADER_PADDING, WIDGET_PADDING_4)
                 // Vanilla's multi-line edit box pads its text 4 on every side
                 .insets(TextArea.STYLE_PADDING, Insets.of(4f))
+                // Vanilla draws a slider's label 2 in from its sides and 6 down, as on its buttons
+                .insets(Slider.STYLE_PADDING, new Insets(2f, 6f, 2f, 5f))
                 .paint(ProgressBar.STYLE_TRACK, Paint.solid(0xFF000000))
                 .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
                 .textStyle(ProgressBar.STYLE_TEXT, text)
