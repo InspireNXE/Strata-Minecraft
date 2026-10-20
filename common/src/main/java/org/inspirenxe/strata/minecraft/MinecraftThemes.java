@@ -50,6 +50,10 @@ import org.inspirenxe.strata.api.theme.ThemeId;
 public final class MinecraftThemes {
     // Borders as declared in each sprite's .png.mcmeta in 26.3; Minecraft reads the .mcmeta, other engines these
     private static final Insets BUTTON_BORDER = Insets.of(3f);
+    /**
+     * Vanilla has no pressed button sprite; the highlighted one darkened by this tint stands in for it.
+     */
+    private static final int PRESSED_TINT = 0xFFB0B0B0;
     private static final Insets BUTTON_DISABLED_BORDER = Insets.of(1f);
     private static final Insets FIELD_BORDER = Insets.of(1f);
     private static final Insets SLIDER_BORDER = Insets.of(1f);
@@ -76,9 +80,9 @@ public final class MinecraftThemes {
      *     {@code widget/button_disabled}, with white shadowed captions, gray when disabled;</li>
      *     <li>text boxes use {@code widget/text_field} and {@code widget/text_field_highlighted}, with vanilla's
      *     {@code 0xE0E0E0} text and {@code 0x707070} when disabled;</li>
-     *     <li>check boxes use {@code widget/checkbox}, {@code widget/checkbox_highlighted} (hovered and focused),
+     *     <li>checkboxes use {@code widget/checkbox}, {@code widget/checkbox_highlighted} (hovered and focused),
      *     {@code widget/checkbox_selected} and {@code widget/checkbox_selected_highlighted}, which have the check mark
-     *     drawn in, so no mark paint is set. Vanilla has no disabled check box sprites, so a disabled check box shows
+     *     drawn in, so no mark paint is set. Vanilla has no disabled checkbox sprites, so a disabled checkbox shows
      *     the normal ones with a gray caption;</li>
      *     <li>sliders use {@code widget/slider} for the track, {@code widget/slider_highlighted} while focused,
      *     {@code widget/slider_handle} for the thumb and {@code widget/slider_handle_highlighted} while hovered,
@@ -91,7 +95,7 @@ public final class MinecraftThemes {
      *     units lower, as in vanilla;</li>
      *     <li>windows use {@code popup/background}, the frame of vanilla's popup screens, with no title bar paint;</li>
      *     <li>combo boxes use the button sprites, over a near-black list;</li>
-     *     <li>radio buttons use the check box sprites, so a selected one shows vanilla's check mark;</li>
+     *     <li>radio buttons use the checkbox sprites, so a selected one shows vanilla's check mark;</li>
      *     <li>toggle switches use the slider sprites: {@code widget/slider} for the track when off,
      *     {@code widget/slider_highlighted} when on, and the handle sprites for the knob;</li>
      *     <li>expanders use the button sprites for their header;</li>
@@ -116,12 +120,14 @@ public final class MinecraftThemes {
         return Theme.builder(VANILLA.toString())
                 .paint(Button.STYLE_NORMAL, Paint.nineSlice(sprite("widget/button"), BUTTON_BORDER))
                 .paint(Button.STYLE_HOVERED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))
-                .paint(Button.STYLE_PRESSED, Paint.nineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER))
+                // Vanilla has no pressed sprite; the highlighted one darkened
+                .paint(Button.STYLE_PRESSED, new Paint.NineSlice(sprite("widget/button_highlighted"), BUTTON_BORDER,
+                        PRESSED_TINT))
                 .paint(Button.STYLE_DISABLED, Paint.nineSlice(sprite("widget/button_disabled"), BUTTON_DISABLED_BORDER))
                 .textStyle(Button.STYLE_TEXT, text)
                 .textStyle(Button.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .textStyle(Label.STYLE_TEXT, text)
-                // Vanilla's check box sprites have no .mcmeta, so they stretch over the box
+                // Vanilla's checkbox sprites have no .mcmeta, so they stretch over the box
                 .paint(CheckBox.STYLE_NORMAL, Paint.sprite(sprite("widget/checkbox")))
                 .paint(CheckBox.STYLE_HOVERED, Paint.sprite(sprite("widget/checkbox_highlighted")))
                 .paint(CheckBox.STYLE_CHECKED, Paint.sprite(sprite("widget/checkbox_selected")))
