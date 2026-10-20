@@ -98,6 +98,8 @@
     "picker.button.hovered": { "nine_slice": "minecraft:widget/button_highlighted", "border": 3 },
     "picker.button.disabled": { "nine_slice": "minecraft:widget/button_disabled", "border": 1 },
     "picker.popup": "#F0101010",
+    "dropdown.arrow": "#FFFFFFFF",
+    "flyout.background": "#F0101010",
     "calendar.day.selected": "#60FFFFFF",
     "calendar.focus": "#FFFFFFFF",
     "window.grip": "#FFA0A0A0",
@@ -160,6 +162,7 @@
     "combobox.padding": [4, 6, 4, 5],
     "expander.header.padding": [4, 6, 4, 5],
     "textarea.padding": 4,
-    "slider.padding": [2, 6, 2, 5]
+    "slider.padding": [2, 6, 2, 5],
+    "flyout.padding": 4
   }
 }
