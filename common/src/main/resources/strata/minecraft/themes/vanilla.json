@@ -102,6 +102,8 @@
     "flyout.background": "#F0101010",
     "calendar.day.selected": "#60FFFFFF",
     "calendar.focus": "#FFFFFFFF",
+    "avatar.background": { "sprite": "minecraft:container/slot" },
+    "badge.background": "none",
     "window.grip": "#FFA0A0A0",
     "window.grip.hovered": "#FFFFFFFF",
     "overlay.backdrop": "#60000000",
@@ -152,7 +154,9 @@
     "busy.text": { "color": "#FFFFFFFF", "shadow": true },
     "textbox.suggestion.text": { "color": "#FFAAAAAA", "shadow": true },
     "toast.text": { "color": "#FFFFFFFF", "shadow": false },
-    "tooltip.text": { "color": "#FFFFFFFF", "shadow": false }
+    "tooltip.text": { "color": "#FFFFFFFF", "shadow": false },
+    "avatar.initials": { "color": "#FFFFFFFF", "shadow": true },
+    "badge.text": { "color": "#FFFFFFFF", "shadow": true }
   },
   "insets": {
     "tab.padding": [8, 7, 8, 3],
@@ -163,6 +167,7 @@
     "expander.header.padding": [4, 6, 4, 5],
     "textarea.padding": 4,
     "slider.padding": [2, 6, 2, 5],
-    "flyout.padding": 4
+    "flyout.padding": 4,
+    "badge.padding": 0
   }
 }
