@@ -120,6 +120,9 @@ public final class MinecraftThemes {
                 .paint(CheckBox.STYLE_HOVERED, Paint.sprite(sprite("widget/checkbox_highlighted")))
                 .paint(CheckBox.STYLE_CHECKED, Paint.sprite(sprite("widget/checkbox_selected")))
                 .paint(CheckBox.STYLE_CHECKED_HOVERED, Paint.sprite(sprite("widget/checkbox_selected_highlighted")))
+                // Vanilla has no mixed sprite; a square in the text color over the empty box
+                .paint(CheckBox.STYLE_MARK_MIXED, Paint.solid(0xFFE0E0E0))
+                .paint(CheckBox.STYLE_MARK_MIXED_DISABLED, Paint.solid(0xFFA0A0A0))
                 .textStyle(CheckBox.STYLE_TEXT, text)
                 .textStyle(CheckBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .paint(Slider.STYLE_TRACK, Paint.nineSlice(sprite("widget/slider"), SLIDER_BORDER))
