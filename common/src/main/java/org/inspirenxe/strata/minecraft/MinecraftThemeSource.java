@@ -27,6 +27,9 @@ import org.inspirenxe.strata.spi.ThemeDocument;
 import org.inspirenxe.strata.spi.ThemeSource;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,31 +43,64 @@ import java.util.concurrent.atomic.AtomicLong;
  * to every host.
  *
  * <ul>
- *     <li>{@link MinecraftThemes#VANILLA} is registered as a base theme. Mods can register their own with
- *     {@link #register}.</li>
- *     <li>Theme files are read from {@code assets/<namespace>/strata/themes/<path>.json} in every resource pack
- *     that has one, mods' own resources and a server's pack included, lowest priority first as vanilla stacks
- *     them. Files are read once per id and cached until resources reload.</li>
+ *     <li>{@link #VANILLA} is vanilla's look as a theme. Its base is a theme file Strata-Minecraft ships on the class
+ *     path at {@code strata/minecraft/themes/vanilla.json}, outside {@code assets/}, so the resource manager never
+ *     reads it as a pack file. {@link #bases} returns it, with the layer {@code vanilla}, the vanilla pack's id. The
+ *     file names {@code strata:flat} as its parent and sets every key the flat theme sets, so no key of a built-in
+ *     control comes from the flat theme.</li>
+ *     <li>Mods can register themes built in code with {@link #register}, though
+ *     {@link org.inspirenxe.strata.api.Strata#themes()} does the same on every engine.</li>
+ *     <li>Theme files are read from {@code assets/<namespace>/strata/themes/<path>.json} in every resource pack that
+ *     has one. {@link #documents} returns the player's packs first, a server's or world's pack among them, in the
+ *     order the game stacks them, and then the packs of mods' own resources, in the order the game stacks those, so
+ *     a mod's theme files win over the player's packs. Each document's layer is its pack's id. Files are read once
+ *     per id and cached until resources reload.</li>
+ *     <li>The order changes only which theme file wins a key. The game's pack stack is left as it is, so sprites
+ *     and every other asset keep the game's order.</li>
  *     <li>The source registers itself as a reload listener on the client resource manager the first time
  *     {@link #get} is called. Each reload drops the cache and changes {@link #version()}, so every open
  *     {@code StrataScreen} with a theme ref resolves it again.</li>
  *     <li>An id that is not a valid Minecraft identifier, or a file that cannot be read, gives no documents.</li>
  * </ul>
+ *
+ * <p>A pack comes from a mod when it has known pack info whose namespace is not {@code minecraft}. NeoForge gives
+ * each mod's pack the namespace {@code neoforge} and Fabric API gives it {@code vanilla}, while the vanilla pack and
+ * its built-in packs use {@code minecraft}, and packs from the resource pack folder, a server or a world have
+ * none. A pack's source cannot tell them apart: NeoForge marks mods' packs as {@code PackSource.DEFAULT}, the same
+ * source the resource pack folder uses.</p>
  */
 public final class MinecraftThemeSource implements ThemeSource, ResourceManagerReloadListener {
+    /**
+     * The id of vanilla's look as a theme. Pass {@code ThemeRef.of(MinecraftThemeSource.VANILLA)} to a
+     * {@link StrataScreen} to look like the game and follow resource packs, which restyle it with
+     * {@code assets/minecraft/strata/themes/vanilla.json}.
+     */
+    public static final ThemeId VANILLA = ThemeId.of("minecraft", "vanilla");
+
+    /**
+     * The layer the keys of the vanilla theme's base file report: the vanilla pack's id.
+     */
+    public static final String VANILLA_LAYER = "vanilla";
+
+    /**
+     * Where the vanilla theme's base file is on the class path.
+     */
+    static final String VANILLA_FILE = "/strata/minecraft/themes/vanilla.json";
+
     private static MinecraftThemeSource instance;
 
     private final Minecraft minecraft;
+    private final List<ThemeDocument> vanilla;
     private final Map<ThemeId, Theme> bases;
     private final Map<ThemeId, List<ThemeDocument>> cache;
     private final AtomicLong version;
 
     MinecraftThemeSource(final Minecraft minecraft) {
         this.minecraft = minecraft;
+        this.vanilla = List.of(MinecraftThemeSource.vanillaFile());
         this.bases = new HashMap<>();
         this.cache = new HashMap<>();
         this.version = new AtomicLong();
-        this.bases.put(MinecraftThemes.VANILLA, MinecraftThemes.vanilla());
     }
 
     /**
@@ -89,15 +125,28 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
      *
      * @param id the id theme refs and theme files use
      * @param theme the theme
+     * @throws IllegalArgumentException if the id is {@link #VANILLA}, whose base is a file; change its keys with
+     *     {@code Strata.themes().override} instead
      */
     public synchronized void register(final ThemeId id, final Theme theme) {
-        this.bases.put(Objects.requireNonNull(id, "id"), Objects.requireNonNull(theme, "theme"));
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(theme, "theme");
+        if (id.equals(VANILLA)) {
+            throw new IllegalArgumentException(VANILLA + " has a base file; override its keys with "
+                    + "Strata.themes().override instead");
+        }
+        this.bases.put(id, theme);
         this.version.incrementAndGet();
     }
 
     @Override
     public synchronized Optional<Theme> base(final ThemeId id) {
         return Optional.ofNullable(this.bases.get(id));
+    }
+
+    @Override
+    public List<ThemeDocument> bases(final ThemeId id) {
+        return VANILLA.equals(id) ? this.vanilla : List.of();
     }
 
     @Override
@@ -121,19 +170,55 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
         return "Strata themes";
     }
 
+    /**
+     * Returns whether a resource comes from a mod's own resources rather than from the player, a server or a world,
+     * or from vanilla.
+     *
+     * @param resource the resource
+     * @return true if its pack has known pack info outside the {@code minecraft} namespace
+     */
+    static boolean fromMod(final Resource resource) {
+        return resource.knownPackInfo().filter(pack -> !pack.isVanilla()).isPresent();
+    }
+
     private List<ThemeDocument> read(final ThemeId id) {
         final Identifier location = Identifier.tryBuild(id.namespace(), "strata/themes/" + id.path() + ".json");
         if (location == null) {
             return List.of();
         }
-        final List<ThemeDocument> documents = new ArrayList<>();
+        final List<ThemeDocument> players = new ArrayList<>();
+        final List<ThemeDocument> mods = new ArrayList<>();
         for (final Resource resource : this.minecraft.getResourceManager().getResourceStack(location)) {
             try {
-                documents.add(new ThemeDocument(resource.sourcePackId() + "/" + location, resource.readAllAsString()));
+                final String pack = resource.sourcePackId();
+                final ThemeDocument document = new ThemeDocument(pack + "/" + location, resource.readAllAsString(),
+                        pack);
+                (MinecraftThemeSource.fromMod(resource) ? mods : players).add(document);
             } catch (final IOException ignored) {
                 // An unreadable file is left out, as the ThemeSource contract asks
             }
         }
+        // Mods' files go above the player's packs, whatever the game's order; each group keeps the game's order
+        final List<ThemeDocument> documents = new ArrayList<>(players);
+        documents.addAll(mods);
         return List.copyOf(documents);
+    }
+
+    /**
+     * Reads the vanilla theme's base file from Strata-Minecraft's own jar.
+     *
+     * @throws IllegalStateException if the file is missing, which means the jar was built wrong
+     */
+    private static ThemeDocument vanillaFile() {
+        try (InputStream in = MinecraftThemeSource.class.getResourceAsStream(VANILLA_FILE)) {
+            if (in == null) {
+                throw new IllegalStateException("Strata-Minecraft's vanilla theme is missing from the class path: "
+                        + VANILLA_FILE);
+            }
+            return new ThemeDocument(VANILLA_FILE.substring(1), new String(in.readAllBytes(), StandardCharsets.UTF_8),
+                    VANILLA_LAYER);
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Cannot read Strata-Minecraft's vanilla theme", e);
+        }
     }
 }

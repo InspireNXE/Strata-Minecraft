@@ -39,7 +39,7 @@ import java.util.Objects;
  * <pre>{@code
  * Minecraft.getInstance().gui.setScreen(
  *         new StrataScreen(Component.literal("Settings"), new SettingsScreen(),
- *                 ThemeRef.of(MinecraftThemes.VANILLA)));
+ *                 ThemeRef.of(MinecraftThemeSource.VANILLA)));
  * }</pre>
  *
  * <p>Given a {@link ThemeRef}, the screen follows resource packs: it resolves the ref when it opens and again
@@ -76,7 +76,8 @@ public class StrataScreen extends Screen {
      *
      * @param title the vanilla title, used for narration
      * @param content the Strata screen to show
-     * @param theme the theme for its components, for example {@link MinecraftThemes#vanilla()}
+     * @param theme the theme for its components, which resource packs never change; to look like the game and
+     *              follow packs, pass {@code ThemeRef.of(MinecraftThemeSource.VANILLA)} instead
      */
     public StrataScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content, final Theme theme) {
         super(title);
@@ -92,7 +93,7 @@ public class StrataScreen extends Screen {
      *
      * @param title the vanilla title, used for narration
      * @param content the Strata screen to show
-     * @param theme the theme to resolve, for example {@code ThemeRef.of(MinecraftThemes.VANILLA)}
+     * @param theme the theme to resolve, for example {@code ThemeRef.of(MinecraftThemeSource.VANILLA)}
      */
     public StrataScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content,
                         final ThemeRef theme) {

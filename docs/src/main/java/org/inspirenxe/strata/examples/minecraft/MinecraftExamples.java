@@ -25,18 +25,24 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.display.Image;
 import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.window.Window;
+import org.inspirenxe.strata.api.event.Subscription;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.theme.ThemeId;
+import org.inspirenxe.strata.api.theme.ThemeOverrides;
 import org.inspirenxe.strata.api.theme.ThemeRef;
+import org.inspirenxe.strata.api.theme.Themes;
 import org.inspirenxe.strata.examples.quickstart.SettingsScreen;
 import org.inspirenxe.strata.minecraft.MinecraftText;
-import org.inspirenxe.strata.minecraft.MinecraftThemes;
+import org.inspirenxe.strata.minecraft.MinecraftThemeSource;
 import org.inspirenxe.strata.minecraft.MinecraftTooltips;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals;
 import org.inspirenxe.strata.minecraft.SlotRendering;
@@ -58,7 +64,7 @@ public final class MinecraftExamples {
     static void open() {
         // --8<-- [start:open]
         Minecraft.getInstance().gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemes.VANILLA)));
+                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemeSource.VANILLA)));
         // --8<-- [end:open]
     }
 
@@ -67,7 +73,7 @@ public final class MinecraftExamples {
         // Network handlers and other threads must hop onto the client thread first
         final Minecraft minecraft = Minecraft.getInstance();
         minecraft.execute(() -> minecraft.gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemes.VANILLA))));
+                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemeSource.VANILLA))));
         // --8<-- [end:thread]
     }
 
@@ -78,7 +84,7 @@ public final class MinecraftExamples {
     public static final class LiveScreen extends StrataScreen {
 
         public LiveScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content) {
-            super(title, content, ThemeRef.of(MinecraftThemes.VANILLA));
+            super(title, content, ThemeRef.of(MinecraftThemeSource.VANILLA));
         }
 
         @Override
@@ -97,7 +103,7 @@ public final class MinecraftExamples {
 
         public ChildScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content,
                            final net.minecraft.client.gui.screens.Screen parent) {
-            super(title, content, ThemeRef.of(MinecraftThemes.VANILLA));
+            super(title, content, ThemeRef.of(MinecraftThemeSource.VANILLA));
             this.parent = parent;
         }
 
@@ -114,7 +120,7 @@ public final class MinecraftExamples {
         // Reads assets/examplemod/textures/gui/sprites/widget/fancy_button.png from the gui atlas
         final SpriteId fancy = SpriteId.of("examplemod", "widget/fancy_button");
         // Vanilla as resource packs restyle it, with this mod's button on top
-        final ThemeRef theme = ThemeRef.of(MinecraftThemes.VANILLA)
+        final ThemeRef theme = ThemeRef.of(MinecraftThemeSource.VANILLA)
                 .override(Button.STYLE_NORMAL, Paint.nineSlice(fancy, Insets.of(4f)));
         // --8<-- [end:theme]
         return theme;
@@ -123,11 +129,25 @@ public final class MinecraftExamples {
     static Theme fixedTheme() {
         // --8<-- [start:fixed]
         // A theme built in code ignores resource packs
-        final Theme theme = MinecraftThemes.vanilla().toBuilder()
+        final Theme theme = Themes.flat().toBuilder()
                 .paint(Button.STYLE_NORMAL, Paint.solid(0xFF2E7D32))
                 .build();
         // --8<-- [end:fixed]
         return theme;
+    }
+
+    static Subscription everywhere() {
+        // --8<-- [start:everywhere]
+        // Every Strata screen that shows the vanilla theme gets this mod's button, over every pack's theme files
+        final SpriteId fancy = SpriteId.of("examplemod", "widget/fancy_button");
+        final Subscription buttons = Strata.themes().override(MinecraftThemeSource.VANILLA, ThemeOverrides.of()
+                .with(Button.STYLE_NORMAL, Paint.nineSlice(fancy, Insets.of(4f))));
+
+        // A theme of the mod's own, which follows packs for every key it leaves alone
+        Strata.themes().define(ThemeId.of("examplemod", "dark"), MinecraftThemeSource.VANILLA, ThemeOverrides.of()
+                .with(Window.STYLE_BACKGROUND, Paint.solid(0xF0101010)));
+        // --8<-- [end:everywhere]
+        return buttons;
     }
 
     static Image itemIcon(final ComponentFactory factory, final ItemStack stack) {
@@ -197,7 +217,7 @@ public final class MinecraftExamples {
                                 .add(slots)
                                 .setAnchor(Anchor.CENTER))
                         .setAnchor(Anchor.FILL),
-                ThemeRef.of(MinecraftThemes.VANILLA), SlotRendering.STRATA);
+                ThemeRef.of(MinecraftThemeSource.VANILLA), SlotRendering.STRATA);
     }
     // --8<-- [end:container]
 }

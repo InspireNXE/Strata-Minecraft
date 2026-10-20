@@ -58,8 +58,8 @@ import java.util.Objects;
  */
 public final class MinecraftText {
     /**
-     * Vanilla's usual GUI text: opaque white with a shadow, as the {@link MinecraftThemes#vanilla() vanilla theme}
-     * draws labels and as vanilla draws tooltips.
+     * Vanilla's usual GUI text: opaque white with a shadow, as the {@linkplain MinecraftThemeSource#VANILLA vanilla
+     * theme} draws labels and as vanilla draws tooltips.
      */
     public static final TextStyle DEFAULT_STYLE = TextStyle.DEFAULT.withColor(0xFFFFFFFF).withShadow(true);
 
