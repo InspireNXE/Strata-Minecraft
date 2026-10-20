@@ -93,7 +93,7 @@ public final class MinecraftThemes {
      *     {@code widget/checkbox_selected} and {@code widget/checkbox_selected_highlighted}, which have the check mark
      *     drawn in, so no mark paint is set. Vanilla has no disabled checkbox sprites, so a disabled checkbox shows
      *     the normal ones with a gray caption;</li>
-     *     <li>sliders use {@code widget/slider} for the track, {@code widget/slider_highlighted} while focused,
+     *     <li>sliders use {@code widget/slider} for the track in every state, so only the handle lights up,
      *     {@code widget/slider_handle} for the thumb and {@code widget/slider_handle_highlighted} while hovered,
      *     focused or pressed, with a white shadowed label, gray when disabled;</li>
      *     <li>labels are white with a shadow;</li>
@@ -147,7 +147,6 @@ public final class MinecraftThemes {
                 .textStyle(CheckBox.STYLE_TEXT, text)
                 .textStyle(CheckBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .paint(Slider.STYLE_TRACK, Paint.nineSlice(sprite("widget/slider"), SLIDER_BORDER))
-                .paint(Slider.STYLE_TRACK_FOCUSED, Paint.nineSlice(sprite("widget/slider_highlighted"), SLIDER_BORDER))
                 .paint(Slider.STYLE_THUMB, Paint.nineSlice(sprite("widget/slider_handle"), SLIDER_HANDLE_BORDER))
                 .paint(Slider.STYLE_THUMB_HOVERED, Paint.nineSlice(sprite("widget/slider_handle_highlighted"), SLIDER_HANDLE_BORDER))
                 .textStyle(Slider.STYLE_TEXT, text)
