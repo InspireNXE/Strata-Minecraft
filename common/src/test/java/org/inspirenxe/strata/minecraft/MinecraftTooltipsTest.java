@@ -60,10 +60,13 @@ class MinecraftTooltipsTest {
         final Tooltip tooltip = MinecraftTooltips.lines(List.of(Component.literal("Name"), Component.empty(),
                 Component.literal("Lore").withStyle(ChatFormatting.GRAY)));
 
-        assertEquals(Tooltip.lines(List.of(
+        final List<List<TextSpan>> resolved = ((Tooltip.Lines) tooltip).lines().stream()
+                .map(text -> text.resolve(WHITE))
+                .toList();
+        assertEquals(List.of(
                 List.of(new TextSpan("Name", WHITE)),
                 List.of(),
                 List.of(new TextSpan("Lore", WHITE.withColor(0xFFAAAAAA)))
-        )), tooltip);
+        ), resolved);
     }
 }

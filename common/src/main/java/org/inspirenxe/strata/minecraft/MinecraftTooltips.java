@@ -20,6 +20,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 
@@ -81,9 +82,9 @@ public final class MinecraftTooltips {
      * @return the tooltip
      */
     public static Tooltip lines(final List<? extends FormattedText> lines) {
-        final List<List<TextSpan>> converted = new ArrayList<>(lines.size());
+        final List<Text> converted = new ArrayList<>(lines.size());
         for (final FormattedText line : lines) {
-            converted.add(spans(line));
+            converted.add(MinecraftText.of(line));
         }
         return Tooltip.lines(converted);
     }

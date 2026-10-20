@@ -20,20 +20,28 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSink;
 import net.minecraft.util.StringDecomposer;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
+import org.inspirenxe.strata.core.StrataCore;
+import org.inspirenxe.strata.spi.TextSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Turns vanilla's formatted text into Strata {@link TextSpan}s, so a {@link org.inspirenxe.strata.api.control.display.Label}
- * can show chat components and text with {@code §} formatting codes:
+ * Turns vanilla's formatted text into Strata {@link Text}, so controls can show chat components and text with
+ * {@code §} formatting codes:
  *
  * <pre>{@code
- * label.setSpans(MinecraftText.spans(Component.translatable("container.inventory")));
- * label.setSpans(MinecraftText.spans("§6Gold §rand §lbold"));
+ * label.setText(MinecraftText.of(Component.translatable("container.inventory")));
+ * button.setText(MinecraftText.of("§6Gold §rand §lbold"));
  * }</pre>
+ *
+ * <p>Text from {@link #of(FormattedText)} reads the component anew each time a control lays out, so translatable
+ * components follow the game's language. The {@code spans} methods convert once, for code that draws spans
+ * itself.</p>
  *
  * <p>Each run of text is drawn in a base style with the vanilla style laid over it, the way a child component's
  * style is laid over its parent's: a color, bold, italic, underline or strikethrough the text sets replaces the
@@ -45,8 +53,8 @@ import java.util.List;
  *
  * <p>Obfuscated text becomes plain text, and fonts, shadow colors, click and hover events and insertions are
  * dropped. A {@code \n} in the text stays in the span, where a label starts a new line. Broken surrogate pairs
- * become {@code U+FFFD}, as vanilla draws them. Translations resolve in the game's language at the time of the
- * call, so convert again after the language changes.</p>
+ * become {@code U+FFFD}, as vanilla draws them. The {@code spans} methods resolve translations in the game's
+ * language at the time of the call.</p>
  */
 public final class MinecraftText {
     /**
@@ -56,6 +64,28 @@ public final class MinecraftText {
     public static final TextStyle DEFAULT_STYLE = TextStyle.DEFAULT.withColor(0xFFFFFFFF).withShadow(true);
 
     private MinecraftText() {
+    }
+
+    /**
+     * Wraps vanilla text as Strata text. Its unstyled parts take the style of the control that shows it, and it is
+     * converted again each time the control lays out, in the language of that moment.
+     *
+     * @param text the text, usually a chat component; do not change it afterwards
+     * @return the text
+     */
+    public static Text of(final FormattedText text) {
+        return StrataCore.text(new FormattedSource(Objects.requireNonNull(text, "text")));
+    }
+
+    /**
+     * Wraps a string with {@code §} formatting codes as Strata text, with {@code §r} going back to the style of the
+     * control that shows it.
+     *
+     * @param text the text, such as {@code "§aGreen §rplain"}
+     * @return the text
+     */
+    public static Text of(final String text) {
+        return StrataCore.text(new CodedSource(Objects.requireNonNull(text, "text")));
     }
 
     /**
@@ -133,6 +163,30 @@ public final class MinecraftText {
         final int argb = color == null ? base.color() : (base.color() & 0xFF000000) | (color.getValue() & 0xFFFFFF);
         return new TextStyle(argb, style.isBold(), style.isItalic(), style.isUnderlined(), style.isStrikethrough(),
                 base.shadow(), base.monospace());
+    }
+
+    /**
+     * Vanilla text read on every resolve. Equal when the texts are.
+     *
+     * @param text the text
+     */
+    private record FormattedSource(FormattedText text) implements TextSource {
+        @Override
+        public List<TextSpan> resolve(final TextStyle base) {
+            return MinecraftText.spans(this.text, base);
+        }
+    }
+
+    /**
+     * A string with formatting codes. Equal when the strings are.
+     *
+     * @param text the string
+     */
+    private record CodedSource(String text) implements TextSource {
+        @Override
+        public List<TextSpan> resolve(final TextStyle base) {
+            return MinecraftText.spans(this.text, base);
+        }
     }
 
     /**

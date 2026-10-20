@@ -173,12 +173,12 @@ public final class MinecraftExamples {
     static Label formattedText(final ComponentFactory factory) {
         // --8<-- [start:text]
         // A chat component, in the vanilla theme's white with a shadow where it sets no style
-        final Label title = factory.label().setSpans(MinecraftText.spans(
+        final Label title = factory.label(MinecraftText.of(
                 Component.translatable("container.inventory").withStyle(ChatFormatting.YELLOW)));
 
         // Section codes, over a gray base without a shadow
-        final Label motd = factory.label().setSpans(MinecraftText.spans("§aOnline §r- 12 players",
-                MinecraftText.DEFAULT_STYLE.withColor(0xFFA0A0A0).withShadow(false)));
+        final Label motd = factory.label(MinecraftText.of("§aOnline §r- 12 players"))
+                .setStyle(MinecraftText.DEFAULT_STYLE.withColor(0xFFA0A0A0).withShadow(false));
         // --8<-- [end:text]
         return motd;
     }
@@ -193,7 +193,7 @@ public final class MinecraftExamples {
         return new StrataContainerScreen<>(menu, inventory, title, 176, 168,
                 (ui, crate, slots) -> ui.anchorPanel()
                         .add(ui.stackPanel().setSpacing(4)
-                                .add(ui.label().setSpans(MinecraftText.spans(title)))
+                                .add(ui.label(MinecraftText.of(title)))
                                 .add(slots)
                                 .setAnchor(Anchor.CENTER))
                         .setAnchor(Anchor.FILL),

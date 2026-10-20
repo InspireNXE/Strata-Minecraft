@@ -17,6 +17,7 @@ package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.junit.jupiter.api.Test;
@@ -87,5 +88,23 @@ class MinecraftTextTest {
     @Test
     void codePointsOutsideTheBasicPlaneStayWhole() {
         assertEquals(List.of(new TextSpan("😀!", WHITE)), MinecraftText.spans("😀!"));
+    }
+
+    @Test
+    void wrappedTextTakesTheControlsStyleAndKeepsItsOwn() {
+        final TextStyle base = TextStyle.DEFAULT.withColor(0xFF202020);
+        final Text text = MinecraftText.of(Component.literal("a").append(Component.literal("b").withStyle(ChatFormatting.GREEN)));
+
+        assertEquals(List.of(new TextSpan("a", base), new TextSpan("b", base.withColor(0xFF55FF55))), text.resolve(base));
+        assertEquals("ab", text.plain());
+        assertEquals(MinecraftText.of(Component.literal("a")), MinecraftText.of(Component.literal("a")));
+    }
+
+    @Test
+    void wrappedCodesGoBackToTheControlsStyle() {
+        final TextStyle base = TextStyle.DEFAULT.withColor(0xFF202020);
+
+        assertEquals(List.of(new TextSpan("g", base.withColor(0xFF55FF55)), new TextSpan("p", base)),
+                MinecraftText.of("§ag§rp").resolve(base));
     }
 }

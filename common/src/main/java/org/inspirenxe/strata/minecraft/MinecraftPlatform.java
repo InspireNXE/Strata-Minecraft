@@ -57,6 +57,7 @@ public final class MinecraftPlatform implements Platform {
      * @param listener the vanilla screen hosting Strata; Minecraft tracks text focus per listener
      */
     public MinecraftPlatform(final Minecraft minecraft, final MinecraftTextMetrics textMetrics, final GuiEventListener listener) {
+        MinecraftTranslator.install();
         this.minecraft = minecraft;
         this.textMetrics = textMetrics;
         this.clipboard = new Clipboard() {
