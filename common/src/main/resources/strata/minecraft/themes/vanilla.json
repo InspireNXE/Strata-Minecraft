@@ -109,6 +109,13 @@
     "infobar.accent.success": "#FF55FF55",
     "infobar.accent.warning": "#FFFFAA00",
     "infobar.accent.error": "#FFFF5555",
+    "nav.pane": "#80000000",
+    "nav.pane.overlay": "#F0101010",
+    "nav.item.selected": "#60FFFFFF",
+    "nav.indicator": "#FFFFFFFF",
+    "nav.toggle": { "nine_slice": "minecraft:widget/button", "border": 3 },
+    "nav.toggle.hovered": { "nine_slice": "minecraft:widget/button_highlighted", "border": 3 },
+    "nav.focus": "#FFFFFFFF",
     "window.grip": "#FFA0A0A0",
     "window.grip.hovered": "#FFFFFFFF",
     "overlay.backdrop": "#60000000",
@@ -162,7 +169,10 @@
     "tooltip.text": { "color": "#FFFFFFFF", "shadow": false },
     "avatar.initials": { "color": "#FFFFFFFF", "shadow": true },
     "badge.text": { "color": "#FFFFFFFF", "shadow": true },
-    "infobar.text": { "color": "#FFFFFFFF", "shadow": false }
+    "infobar.text": { "color": "#FFFFFFFF", "shadow": false },
+    "nav.item.text": { "color": "#FFFFFFFF", "shadow": true },
+    "nav.header.text": { "color": "#FFA0A0A0", "shadow": true },
+    "nav.title.text": { "color": "#FFFFFFFF", "shadow": true }
   },
   "insets": {
     "tab.padding": [8, 7, 8, 3],
