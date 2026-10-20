@@ -58,6 +58,7 @@ public final class MinecraftPlatform implements Platform {
      */
     public MinecraftPlatform(final Minecraft minecraft, final MinecraftTextMetrics textMetrics, final GuiEventListener listener) {
         MinecraftTranslator.install();
+        MinecraftAppearances.install();
         this.minecraft = minecraft;
         this.textMetrics = textMetrics;
         this.clipboard = new Clipboard() {
