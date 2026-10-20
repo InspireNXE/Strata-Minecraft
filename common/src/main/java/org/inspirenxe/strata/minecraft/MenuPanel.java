@@ -254,12 +254,7 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
     }
 
     private static void drawPaint(final Painter painter, final Paint paint, final Rect rect) {
-        switch (paint) {
-            case Paint.Solid solid -> painter.fill(rect, solid.argb());
-            case Paint.Gradient gradient -> painter.fillGradient(rect, gradient.topArgb(), gradient.bottomArgb());
-            case Paint.Sprite sprite -> painter.sprite(sprite.sprite(), rect, sprite.tint());
-            case Paint.NineSlice nineSlice -> painter.nineSlice(nineSlice.sprite(), rect, nineSlice.border(), nineSlice.tint());
-        }
+        paint.paint(painter, rect);
     }
 
     /**

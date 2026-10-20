@@ -38,11 +38,13 @@ import java.util.Optional;
  *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen.</li>
  *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
+ *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
+ *     {@link Capabilities#slicesSprites()} is true and sized and tiled paints reach the canvas whole.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
-    private static final Capabilities CAPABILITIES = new Capabilities(true, false);
+    private static final Capabilities CAPABILITIES = new Capabilities(true, false, true);
 
     private final Minecraft minecraft;
     private final MinecraftTextMetrics textMetrics;
