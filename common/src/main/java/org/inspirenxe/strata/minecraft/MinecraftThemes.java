@@ -20,7 +20,6 @@ import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.button.RadioButton;
 import org.inspirenxe.strata.api.control.button.ToggleSwitch;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
-import org.inspirenxe.strata.api.control.collection.DualList;
 import org.inspirenxe.strata.api.control.collection.GridView;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TableView;
@@ -201,8 +200,6 @@ public final class MinecraftThemes {
                 .textStyle(BusyIndicator.STYLE_TEXT, text)
                 .paint(TextBox.STYLE_SUGGESTIONS, Paint.solid(0xD0000000))
                 .textStyle(TextBox.STYLE_SUGGESTION_TEXT, text.withColor(0xFFAAAAAA))
-                .paint(DualList.STYLE_LIST, Paint.solid(0x80000000))
-                .textStyle(DualList.STYLE_TITLE, text)
                 .paint(ColorPicker.STYLE_FRAME, Paint.solid(0xFFA0A0A0))
                 .paint(ColorPicker.STYLE_MARKER, Paint.solid(0xFFFFFFFF))
                 .paint(ColorPicker.STYLE_MARKER_OUTLINE, Paint.solid(0xFF000000))
