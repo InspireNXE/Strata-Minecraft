@@ -57,6 +57,7 @@ public final class MinecraftThemes {
     private static final Insets SCROLLER_BORDER = Insets.of(1f);
     private static final Insets TAB_BORDER = new Insets(2f, 2f, 2f, 0f);
     private static final Insets POPUP_BORDER = Insets.of(6f);
+    private static final Insets TOAST_BORDER = Insets.of(4f);
 
     /**
      * The id {@link #vanilla()} is registered under. Pass {@code ThemeRef.of(MinecraftThemes.VANILLA)} to a
@@ -85,7 +86,9 @@ public final class MinecraftThemes {
      *     <li>labels are white with a shadow;</li>
      *     <li>scroll bars use {@code widget/scroller} for the thumb and {@code widget/scroller_background} for the
      *     track;</li>
-     *     <li>tab bars use {@code widget/tab}, {@code widget/tab_highlighted} and {@code widget/tab_selected};</li>
+     *     <li>tab bars use {@code widget/tab}, {@code widget/tab_highlighted} and {@code widget/tab_selected}.
+     *     {@code widget/tab} leaves its top 4 pixels empty and edges the next 2, so an unselected tab's text sits two
+     *     units lower, as in vanilla;</li>
      *     <li>windows use {@code popup/background}, the frame of vanilla's popup screens, with no title bar paint;</li>
      *     <li>combo boxes use the button sprites, over a near-black list;</li>
      *     <li>radio buttons use the check box sprites, so a selected one shows vanilla's check mark;</li>
@@ -100,7 +103,10 @@ public final class MinecraftThemes {
      *     <li>spinners, text areas, trees and split panes add no keys: they use the button, text box, list and
      *     separator keys;</li>
      *     <li>list rows, progress bars, separators and the dialog backdrop use plain colors, since vanilla has no
-     *     sprites for them. Tooltips use Strata's fallback, vanilla's classic dark tooltip colors.</li>
+     *     sprites for them. Tooltips use Strata's fallback, vanilla's classic dark tooltip colors;</li>
+     *     <li>toasts use {@code toast/now_playing}, the frame of vanilla's advancement and music toasts, with white
+     *     text and no shadow, as vanilla's toasts draw it. {@code toast/advancement} looks the same but has no
+     *     {@code .mcmeta}, so the game would stretch it over toasts of other sizes.</li>
      * </ul>
      *
      * @return the vanilla theme
@@ -161,6 +167,10 @@ public final class MinecraftThemes {
                 .textStyle(TabBar.STYLE_TEXT, text.withColor(0xFFA0A0A0))
                 .textStyle(TabBar.STYLE_TEXT_SELECTED, text)
                 .textStyle(TabBar.STYLE_TEXT_DISABLED, text.withColor(0xFF606060))
+                // widget/tab is empty in its top 4 pixels and edged in the next 2, so its inside starts 6 down;
+                // both paddings are 10 tall, so tabs are a line plus 10, nearer vanilla's 24
+                .insets(TabBar.STYLE_PADDING, new Insets(8f, 7f, 8f, 3f))
+                .insets(TabBar.STYLE_PADDING_SELECTED, new Insets(8f, 5f, 8f, 5f))
                 .paint(ProgressBar.STYLE_TRACK, Paint.solid(0xFF000000))
                 .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
                 .textStyle(ProgressBar.STYLE_TEXT, text)
@@ -210,6 +220,9 @@ public final class MinecraftThemes {
                 .paint(Window.STYLE_GRIP, Paint.solid(0xFFA0A0A0))
                 .paint(Window.STYLE_GRIP_HOVERED, Paint.solid(0xFFFFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
+                // The advancement frame as a nine-slice; toast/advancement itself has no .mcmeta and would stretch
+                .paint(Overlays.STYLE_TOAST, Paint.nineSlice(sprite("toast/now_playing"), TOAST_BORDER))
+                .textStyle(Overlays.STYLE_TOAST_TEXT, TextStyle.DEFAULT.withColor(0xFFFFFFFF))
                 .paint(MenuPanel.STYLE_SLOT, Paint.sprite(sprite("container/slot")))
                 .paint(MenuPanel.STYLE_HIGHLIGHT_BACK, Paint.sprite(sprite("container/slot_highlight_back")))
                 .paint(MenuPanel.STYLE_HIGHLIGHT_FRONT, Paint.sprite(sprite("container/slot_highlight_front")))
