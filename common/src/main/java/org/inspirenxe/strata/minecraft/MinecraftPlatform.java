@@ -35,7 +35,8 @@ import java.util.Optional;
  *     <li>The clipboard is vanilla's keyboard handler. An empty clipboard reads as empty.</li>
  *     <li>The clock is {@link Clock#SYSTEM}.</li>
  *     <li>Text input: since 26.3 Minecraft sends no typed characters until a text field reports focus, so starting
- *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen.</li>
+ *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen. A secret field
+ *     starts text input the same way: the game's text input takes no input type, so it has no mode for secrets.</li>
  *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
  *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
