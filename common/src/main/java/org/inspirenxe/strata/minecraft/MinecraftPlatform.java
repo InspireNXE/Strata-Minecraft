@@ -17,6 +17,7 @@ package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import org.inspirenxe.strata.api.event.cause.CauseStack;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.spi.Capabilities;
 import org.inspirenxe.strata.spi.Clipboard;
@@ -42,6 +43,10 @@ import java.util.Optional;
  *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
  *     {@link Capabilities#slicesSprites()} is true and sized and tiled paints reach the canvas whole.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
+ *     <li>The cause stack is the one {@link StrataMinecraft#install(CauseStack)} was given, such as Sponge's, or
+ *     Strata's own when it was started without one.</li>
+ *     <li>The user is the local player's profile, vanilla's {@code Minecraft.getGameProfile()}, so every
+ *     {@code Origin.User} carries a {@code GameProfile}.</li>
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
@@ -126,5 +131,15 @@ public final class MinecraftPlatform implements Platform {
     @Override
     public ThemeSource themes() {
         return MinecraftThemeSource.get(this.minecraft);
+    }
+
+    @Override
+    public Optional<CauseStack> causes() {
+        return StrataMinecraft.causes();
+    }
+
+    @Override
+    public Optional<Object> user() {
+        return Optional.ofNullable(this.minecraft.getGameProfile());
     }
 }

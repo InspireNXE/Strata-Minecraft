@@ -16,16 +16,21 @@
 package org.inspirenxe.strata.minecraft;
 
 import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.event.cause.CauseStack;
 import org.inspirenxe.strata.core.StrataCore;
 
+import java.util.Objects;
+import java.util.Optional;
+
 /**
- * Starts Strata-Minecraft. The NeoForge and Fabric entry points call {@link #install()} when the mod loads, so mods
- * never need to.
+ * Starts Strata-Minecraft. The loaders' entry points call {@link #install()}, or {@link #install(CauseStack)} with
+ * Sponge's cause stack where Sponge is present, when the mod or plugin loads, so mods never need to.
  */
 public final class StrataMinecraft {
     private static final System.Logger LOGGER = System.getLogger(StrataMinecraft.class.getName());
 
     private static boolean installed;
+    private static volatile CauseStack causes;
 
     private StrataMinecraft() {
     }
@@ -41,6 +46,36 @@ public final class StrataMinecraft {
             return;
         }
         installed = true;
+        StrataMinecraft.start();
+    }
+
+    /**
+     * Starts Strata-Minecraft as {@link #install()} does, with the engine's own cause stack, which every
+     * {@link MinecraftPlatform} then hands Strata, so hosts push their input frames on it and events read their
+     * causes from it. The Sponge entry points call this with a stack backed by Sponge's. Only the first call to either
+     * method does anything.
+     *
+     * @param causes the cause stack
+     */
+    public static synchronized void install(final CauseStack causes) {
+        if (installed) {
+            return;
+        }
+        installed = true;
+        StrataMinecraft.causes = Objects.requireNonNull(causes, "causes");
+        StrataMinecraft.start();
+    }
+
+    /**
+     * Returns the cause stack Strata-Minecraft was started with.
+     *
+     * @return the stack given to {@link #install(CauseStack)}, or empty when Strata's own is used
+     */
+    public static Optional<CauseStack> causes() {
+        return Optional.ofNullable(StrataMinecraft.causes);
+    }
+
+    private static void start() {
         StrataCore.setScreenController(MinecraftScreens.INSTANCE);
         try {
             if (Strata.screens() != MinecraftScreens.INSTANCE) {

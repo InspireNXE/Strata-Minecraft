@@ -5,7 +5,7 @@ Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-
 | Module | What it is |
 |---|---|
 | `common` | The adapter, written against vanilla classes only: `StrataMinecraft`, which hands Strata the screen controller, `StrataScreen`, `StrataContainerScreen` with its `MenuPanel`, `MinecraftThemeSource` with the vanilla theme, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftText`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput` in `org.inspirenxe.strata.minecraft`, and `ItemDisplay` in `org.inspirenxe.strata.minecraft.control`. |
-| `sponge` | The code that needs SpongeAPI, `StrataSponge` in `org.inspirenxe.strata.sponge`, compiled into the SpongeVanilla plugin and into the NeoForge mod. |
+| `sponge` | The code that needs SpongeAPI, `StrataSponge` and `SpongeCauseStack` in `org.inspirenxe.strata.sponge`, which backs Strata's causes with Sponge's, compiled into the SpongeVanilla plugin and into the NeoForge mod. |
 | `neoforge` | The `strata` mod jar for NeoForge: `common` and `sponge` compiled in, Strata's `api`, `spi` and `core` jars nested with `jarJar`, and a `@Mod` entry point that starts through `sponge` only when SpongeNeo is installed. |
 | `fabric` | The `strata` mod jar for Fabric: `common` compiled in, and Strata's jars nested with `include`. |
 | `spongevanilla` | The `strata` plugin jar for SpongeVanilla: `common` and `sponge` compiled in, Strata's classes copied in, and a `@Plugin` entry point. |
