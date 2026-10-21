@@ -1,43 +1,42 @@
+<p align="center"><img src=".github/assets/logo.svg" width="128" alt="Strata-Minecraft logo"></p>
+
 # Strata-Minecraft
 
-Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-agnostic GUI library for Java games, inside Minecraft 26.3 on NeoForge, Fabric and SpongeVanilla. Strata screens drawn here go through vanilla's GUI pipeline and take input from vanilla's screen callbacks, so they look and behave like vanilla screens.
+Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-agnostic GUI library for Java games, inside Minecraft. Screens go through vanilla's GUI pipeline and take input from vanilla's screen callbacks, so they look and behave like vanilla screens and follow the player's resource packs.
 
-| Module | What it is |
-|---|---|
-| `common` | The adapter, written against vanilla classes only: `StrataMinecraft`, which hands Strata the screen controller, `StrataScreen`, `StrataContainerScreen` with its `MenuPanel`, `MinecraftThemeSource` with the vanilla theme, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftText`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput` in `org.inspirenxe.strata.minecraft`, and `ItemDisplay` in `org.inspirenxe.strata.minecraft.control`. |
-| `sponge` | The code that needs SpongeAPI, `StrataSponge` and `SpongeCauseStack` in `org.inspirenxe.strata.sponge`, which backs Strata's causes with Sponge's, compiled into the SpongeVanilla plugin and into the NeoForge mod. |
-| `neoforge` | The `strata` mod jar for NeoForge: `common` and `sponge` compiled in, Strata's `api`, `spi` and `core` jars nested with `jarJar`, and a `@Mod` entry point that starts through `sponge` only when SpongeNeo is installed. |
-| `fabric` | The `strata` mod jar for Fabric: `common` compiled in, and Strata's jars nested with `include`. |
-| `spongevanilla` | The `strata` plugin jar for SpongeVanilla: `common` and `sponge` compiled in, Strata's classes copied in, and a `@Plugin` entry point. |
-| `docs` | The code the documentation shows, compiled against `common` and the vanilla classes so it stays correct. |
+## Loaders
 
-The jars are named `strata-minecraft-<module>`, in the group `org.inspirenxe`. The mod id is `strata` on both mod loaders, and so is the plugin id on SpongeVanilla.
+| | Loader | Minecraft | Versions |
+|---|---|---|---|
+| <img src=".github/assets/loader-neoforge.svg" width="40" alt=""> | NeoForge | 26.3 | NeoForge 26.3.0.83 or newer. SpongeNeo is optional. |
+| <img src=".github/assets/loader-forge.svg" width="40" alt=""> | Forge | 26.3 | Forge 66.0.13 or newer. SpongeForge is optional. |
+| <img src=".github/assets/loader-fabric.svg" width="40" alt=""> | Fabric | 26.3 | Fabric Loader 0.19.5 or newer. Fabric API is not needed at run time. |
+| <img src=".github/assets/loader-sponge.svg" width="40" alt=""> | Sponge | 26.3 | SpongeVanilla for SpongeAPI 21. |
+
+Strata is a client-side mod with the id `strata` on every loader. Players install the jar for their loader next to your mod. Nothing is published yet.
 
 ## Showing a screen
 
-A screen is written against Strata's API exactly as it would be for any other engine, and opened through it too, from any thread:
+Screens are written against Strata's API exactly as for any other engine, and opened from any thread:
 
 ```java
 Strata.screens().open(new SettingsScreen());
 ```
 
-The adapter shows it in a `StrataScreen`, a vanilla `Screen` that hosts it, in the vanilla theme, which follows the player's resource packs. Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [notes/minecraft.md](notes/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, formatted text, items, item tooltips and player faces, container screens with slots, input, threading, and how the game differs from Strata's Swing adapter.
+The adapter shows it in a vanilla `Screen` in the vanilla theme. Input Strata does not use goes on to vanilla, so Escape still closes the screen. [Using Strata in a mod](notes/minecraft.md#using-strata-in-a-mod) has the dependency setup for each loader.
 
-## Requirements
+## Modules
 
-| What | Version |
+| Module | What it is |
 |---|---|
-| Java | 25 or newer, for building and at run time |
-| Gradle | 9.7.1, through the wrapper in the repository |
-| Minecraft | 26.3 exactly; the mod metadata accepts `[26.3, 26.4)` |
-| NeoForge | 26.3.0.83 or newer |
-| Fabric Loader | 0.19.5 or newer. Fabric API is not required at run time. |
-| SpongeVanilla | Any build for SpongeAPI 21, such as `26.3-21.0.0-RC2745`. SpongeNeo is optional on NeoForge, with the same API. |
-| Strata | A checkout of the Strata repository next to this one |
+| `common` | The adapter, written against vanilla classes only. |
+| `sponge` | The code that needs SpongeAPI, which backs Strata's causes with Sponge's. |
+| `neoforge`, `forge`, `fabric`, `spongevanilla` | The mod and plugin jars, named `strata-minecraft-<module>` in the group `org.inspirenxe`. |
+| `docs` | The code the documentation shows, compiled so it stays correct. |
 
 ## Building
 
-Strata is not published yet, so this build compiles it from source through a Gradle composite build. `settings.gradle` includes `../Strata` with `includeBuild` and substitutes its `api`, `spi` and `core` projects for the `org.inspirenxe:strata-*` dependencies. Clone both repositories side by side:
+Building needs JDK 25 and a Strata checkout beside this one at `../Strata`, which the build includes from source.
 
 ```bash
 git clone https://github.com/InspireNXE/Strata.git
@@ -46,121 +45,22 @@ cd Strata-Minecraft
 ./gradlew build
 ```
 
-The directory names matter: the build expects Strata at `../Strata`. A change in the Strata checkout is picked up by the next Strata-Minecraft build, with no publishing step in between.
+`./gradlew :neoforge:runClient`, `./gradlew :forge:runClient` and `./gradlew :fabric:runClient` start a client with Strata loaded. SpongeVanilla has no client task, because its release jars start servers only. Strata on its own opens no screens, so you need a mod or a small test to open one.
 
-The build compiles `common` against vanilla through NeoForm, runs the tests against the real vanilla classes, runs Javadoc on `common` with every doclint check, and fails on any Javadoc warning, including a missing comment. It also compiles the documentation examples and builds the two mod jars and the SpongeVanilla plugin jar in each loader module's `build/libs`.
-
-| Command | Does |
-|---|---|
-| `./gradlew :neoforge:runClient` | Starts a NeoForge client with Strata loaded |
-| `./gradlew :fabric:runClient` | Starts a Fabric client with Strata loaded |
-
-There is no task for a SpongeVanilla client. SpongeVanilla 26.3 starts a client only from its own development environment; its release jars start servers.
-| `./gradlew :common:javadoc` | Builds the adapter's Javadoc into `common/build/docs/javadoc` |
-
-Strata on its own opens no screens. You need a mod, or a small test of your own, to open one.
-
-On Windows, if Gradle fails with "Unable to establish loopback connection", the JDK's NIO pipe could not create its Unix domain socket in `%TEMP%`. Point it at a local directory first:
+On Windows, if Gradle fails with "Unable to establish loopback connection", point the JDK's Unix domain sockets at a local folder:
 
 ```bash
 export JAVA_TOOL_OPTIONS="-Djdk.net.unixdomain.tmpdir=$PWD/.gradle/udstmp"
 ```
 
-## Using Strata in a mod
-
-Strata ships as its own client-side mod with the mod id `strata`. Players install the Strata jar for their loader next to your mod.
-
-Until Strata is published, publish both builds to your local Maven repository: run `./gradlew publishToMavenLocal` in the Strata checkout, then in this one. The loader jar lists Strata's `api`, `spi` and `core` as run-time dependencies only, so add `strata-api` for compiling.
-
-This has not been tried from a separate mod project yet. If a snippet below fails for you, please open an issue with the error.
-
-NeoForge, in a ModDevGradle project:
-
-```groovy
-repositories {
-    mavenLocal()
-}
-
-dependencies {
-    implementation 'org.inspirenxe:strata-minecraft-neoforge:0.1.0-SNAPSHOT'
-    compileOnly 'org.inspirenxe:strata-api:0.1.0-SNAPSHOT'
-}
-```
-
-Declare the dependency in `META-INF/neoforge.mods.toml`, so the game refuses to start without Strata instead of failing later:
-
-```toml
-[[dependencies.examplemod]]
-modId = "strata"
-type = "required"
-versionRange = "*"
-ordering = "NONE"
-side = "CLIENT"
-```
-
-Fabric, in a Loom project. Loom 1.18 does not remap, so use `implementation`, not `modImplementation`:
-
-```groovy
-repositories {
-    mavenLocal()
-}
-
-dependencies {
-    implementation 'org.inspirenxe:strata-minecraft-fabric:0.1.0-SNAPSHOT'
-    compileOnly 'org.inspirenxe:strata-api:0.1.0-SNAPSHOT'
-}
-```
-
-Declare the dependency in `fabric.mod.json`:
-
-```json
-"depends": {
-    "strata": "*"
-}
-```
-
-SpongeVanilla, in a plugin project that compiles against SpongeAPI 21. Players install the Strata plugin next to yours, so do not copy Strata into your jar: SpongeVanilla loads each plugin jar as a module, and two modules cannot hold the same packages.
-
-```groovy
-repositories {
-    mavenLocal()
-}
-
-dependencies {
-    compileOnly 'org.inspirenxe:strata-minecraft-spongevanilla:0.1.0-SNAPSHOT'
-    compileOnly 'org.inspirenxe:strata-api:0.1.0-SNAPSHOT'
-}
-```
-
-Declare the dependency in `META-INF/sponge_plugins.json`, loading after Strata so that `Strata.screens()` works from your own `ConstructPluginEvent`:
-
-```json
-"dependencies": [
-    {
-        "id": "strata",
-        "version": "*",
-        "load-order": "after",
-        "optional": false
-    }
-]
-```
-
-SpongeNeo gives every NeoForge mod plugin metadata, so on NeoForge with SpongeNeo the same dependency should find the NeoForge Strata jar. This has not been tried.
-
-The examples accept any Strata version, because every loader sorts `0.1.0-SNAPSHOT` before `0.1.0`, so a range such as `[0.1.0,)` would reject the current build. Pin a real range once releases exist.
-
-Only use the `org.inspirenxe.strata.api` packages and the `org.inspirenxe.strata.minecraft` packages from your mod. The loader jar also carries `spi` and `core`, because the game needs them at run time, but they are not part of the API and change without notice.
-
-Strata is a client-side mod (`side = "CLIENT"` on NeoForge, `"environment": "client"` on Fabric, and a plugin that does nothing on a SpongeVanilla server). Keep every class that touches Strata out of code that runs on a dedicated server, the same as you would for vanilla screen classes.
-
-Both loaders can also nest one mod jar inside another: NeoForge with `jarJar`, Fabric with `include`. Nesting the Strata jar in your mod means players do not have to install it themselves. This has not been tried yet. If several mods nest different Strata versions, the loader picks one, so keep your version range honest.
-
 ## Documentation
 
-- [notes/minecraft.md](notes/minecraft.md): using Strata in Minecraft, from opening a screen to item tooltips.
-- [notes/DESIGN.md](notes/DESIGN.md): how the adapter maps Strata's SPI onto 26.3, the verified 26.3 facts, and the decisions and open questions.
+- [notes/minecraft.md](notes/minecraft.md): using Strata in Minecraft, from loader setup and opening a screen to items and container screens.
+- [notes/DESIGN.md](notes/DESIGN.md): how the adapter maps Strata's SPI onto 26.3, with its decisions and open questions.
 - [notes/ROADMAP.md](notes/ROADMAP.md): what is left before Almura's screens can run on Strata in game.
 
-Strata's own documentation, for components, layout, events, themes and writing screens, is in the [Strata-Docs repository](https://github.com/InspireNXE/Strata-Docs). Its design notes and roadmap are in the [Strata repository](https://github.com/InspireNXE/Strata).
+Strata itself is documented on the [documentation site](https://inspirenxe.github.io/Strata/).
 
-Strata-Minecraft is released under the Apache License, Version 2.0.
+## License
+
+Strata-Minecraft is released under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). It is not affiliated with Mojang or Microsoft. The NeoForge, Forge, Fabric and Sponge marks belong to their projects.

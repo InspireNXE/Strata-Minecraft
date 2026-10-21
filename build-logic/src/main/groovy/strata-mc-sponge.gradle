@@ -1,4 +1,4 @@
-// spongevanilla and neoforge: compile the sponge project's sources into the jar, against SpongeAPI.
+// spongevanilla, neoforge and forge: compile the sponge project's sources into the jar, against SpongeAPI.
 plugins {
     id 'strata-mc-sponge-api'
 }

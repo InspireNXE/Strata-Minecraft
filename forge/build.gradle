@@ -1,0 +1,66 @@
+plugins {
+    id 'strata-mc-loader'
+    // SpongeAPI stays compileOnly: the jar runs with or without SpongeForge
+    id 'strata-mc-sponge'
+    id 'net.minecraftforge.gradle'
+    // ForgeGradle 7 does not nest jars itself
+    id 'net.minecraftforge.jarjar'
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+}
+
+jarJar.register()
+
+// The jarJar task repacks the mod jar with Strata nested, and its jar is the one players install, so it takes the
+// plain name. It already holds the license files every jar gets.
+tasks.named('jar', Jar) {
+    archiveClassifier = 'slim'
+}
+tasks.named('jarJar', Jar) {
+    archiveClassifier = ''
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+dependencies {
+    implementation(minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}"))
+    // Strata ships nested in the mod jar
+    ['api', 'spi', 'core'].each { name ->
+        implementation(jarJar("org.inspirenxe:strata-${name}:${strata_version}")) {
+            transitive = false
+            jarJar.configure(it) {
+                version = strata_version
+            }
+        }
+    }
+}
+
+minecraft {
+    runs {
+        register('client') {
+            workingDir = layout.projectDirectory.dir('runs/client')
+        }
+    }
+}
+
+// Implement mcgradleconventions loader attribute
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements'].each { variant ->
+    configurations.named(variant) {
+        attributes {
+            attribute(loaderAttribute, 'forge')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant ->
+        configurations.named(variant) {
+            attributes {
+                attribute(loaderAttribute, 'forge')
+            }
+        }
+    }
+}

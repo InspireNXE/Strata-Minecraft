@@ -3,4 +3,8 @@ plugins {
     id 'net.fabricmc.fabric-loom' version '1.18.4' apply false
     // see https://projects.neoforged.net/neoforged/moddevgradle
     id 'net.neoforged.moddev' version '2.0.148' apply false
+    // see https://plugins.gradle.org/plugin/net.minecraftforge.gradle
+    id 'net.minecraftforge.gradle' version '7.0.40' apply false
+    // see https://plugins.gradle.org/plugin/net.minecraftforge.jarjar
+    id 'net.minecraftforge.jarjar' version '0.2.3' apply false
 }
