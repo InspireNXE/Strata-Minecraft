@@ -1,0 +1,24 @@
+// spongevanilla and neoforge: compile the sponge project's sources into the jar, against SpongeAPI.
+plugins {
+    id 'strata-mc-sponge-api'
+}
+
+configurations {
+    spongeJava {
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    spongeJava(project(path: ':sponge', configuration: 'spongeJava'))
+}
+
+tasks.named('compileJava', JavaCompile) {
+    dependsOn(configurations.spongeJava)
+    source(configurations.spongeJava)
+}
+
+tasks.named('sourcesJar', Jar) {
+    dependsOn(configurations.spongeJava)
+    from(configurations.spongeJava)
+}

@@ -1,0 +1,33 @@
+plugins {
+    id 'strata-mc-java'
+    id 'strata-mc-documented'
+    id 'strata-mc-sponge-api'
+    id 'net.neoforged.moddev'
+}
+
+description = 'The parts of the Minecraft adapter that need SpongeAPI, shared by SpongeVanilla and NeoForge with SpongeNeo.'
+
+neoForge {
+    neoFormVersion = neo_form_version
+}
+
+// spongevanilla and neoforge compile these sources into their own jars, as they do common's
+configurations {
+    spongeJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    spongeJava sourceSets.main.java.sourceDirectories.singleFile
+}
+
+dependencies {
+    compileOnly(project(':common')) {
+        attributes {
+            attribute(Attribute.of('io.github.mcgradleconventions.loader', String), 'common')
+        }
+    }
+    compileOnly("org.inspirenxe:strata-core:${strata_version}")
+}

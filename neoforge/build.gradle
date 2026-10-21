@@ -1,5 +1,7 @@
 plugins {
     id 'strata-mc-loader'
+    // SpongeAPI stays compileOnly: the jar runs with or without SpongeNeo
+    id 'strata-mc-sponge'
     id 'net.neoforged.moddev'
 }
 

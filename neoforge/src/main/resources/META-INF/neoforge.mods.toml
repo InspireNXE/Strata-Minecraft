@@ -22,3 +22,10 @@ type = "required"
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "spongeapi"
+type = "optional"
+versionRange = "${sponge_api_version_range}"
+ordering = "AFTER"
+side = "CLIENT"

@@ -16,19 +16,44 @@
 package org.inspirenxe.strata.neoforge;
 
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import org.inspirenxe.strata.minecraft.StrataMinecraft;
+import org.inspirenxe.strata.sponge.StrataSponge;
 
 /**
  * NeoForge entry point. It marks the jar as the {@code strata} mod and starts Strata-Minecraft when the mod is
  * constructed, so {@code Strata.screens()} works for dependent mods from then on.
+ *
+ * <p>SpongeAPI is optional. When SpongeNeo is installed, NeoForge lists SpongeAPI as the mod {@value #SPONGE_API},
+ * constructs it before Strata, and Strata starts through {@link StrataSponge}. Without it, no Sponge class is
+ * loaded.</p>
  */
 @Mod(value = "strata", dist = Dist.CLIENT)
 public final class StrataNeoForge {
     /**
+     * The mod id SpongeNeo gives SpongeAPI.
+     */
+    static final String SPONGE_API = "spongeapi";
+
+    /**
      * Starts Strata-Minecraft; NeoForge calls this when it constructs the mod.
      */
     public StrataNeoForge() {
-        StrataMinecraft.install();
+        StrataNeoForge.install(ModList.get().isLoaded(StrataNeoForge.SPONGE_API));
+    }
+
+    /**
+     * Starts Strata-Minecraft, through {@link StrataSponge} when SpongeAPI is loaded. Nothing outside
+     * {@code org.inspirenxe.strata.sponge} names a Sponge type, so the other branch never needs one.
+     *
+     * @param sponge whether SpongeAPI is loaded
+     */
+    static void install(final boolean sponge) {
+        if (sponge) {
+            StrataSponge.install();
+        } else {
+            StrataMinecraft.install();
+        }
     }
 }

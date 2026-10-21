@@ -1,0 +1,26 @@
+// sponge and the projects that compile it: SpongeAPI from Sponge's repository, compileOnly, because the platform
+// brings it: SpongeVanilla always, NeoForge only with SpongeNeo installed.
+plugins {
+    id 'strata-mc-java'
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Sponge'
+                url = uri('https://repo.spongepowered.org/repository/maven-public/')
+            }
+        }
+        filter {
+            includeModule('org.spongepowered', 'spongeapi')
+            includeModule('org.spongepowered', 'plugin-spi')
+            includeModule('org.spongepowered', 'plugin-meta')
+            includeModule('org.spongepowered', 'event-impl-gen-annotations')
+        }
+    }
+}
+
+dependencies {
+    compileOnly("org.spongepowered:spongeapi:${sponge_api_version}")
+}

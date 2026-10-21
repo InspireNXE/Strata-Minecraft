@@ -58,6 +58,7 @@ processResources {
             'description'                  : project.description ?: rootProject.property('description'),
             'neoforge_version'             : neoforge_version,
             'neoforge_loader_version_range': neoforge_loader_version_range,
+            'sponge_api_version_range'     : sponge_api_version_range,
             'java_version'                 : java_version
     ]
 
@@ -65,7 +66,7 @@ processResources {
         expand expandProps
     }
 
-    filesMatching(['fabric.mod.json', 'pack.mcmeta']) {
+    filesMatching(['fabric.mod.json', 'META-INF/sponge_plugins.json', 'pack.mcmeta']) {
         expand expandProps.collectEntries { key, value ->
             [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
         }

@@ -40,5 +40,8 @@ includeBuild('../Strata') {
 include('common')
 include('neoforge')
 include('fabric')
+// Sponge-only code, compiled into the SpongeVanilla plugin and into the NeoForge jar for SpongeNeo
+include('sponge')
+include('spongevanilla')
 // The code the documentation shows, compiled so it stays correct
 include('docs')
