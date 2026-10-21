@@ -36,7 +36,7 @@ The adapter shows it in a vanilla `Screen` in the vanilla theme. Input Strata do
 
 ## Building
 
-Building needs JDK 25 and a Strata checkout beside this one at `../Strata`, which the build includes from source.
+Building needs JDK 25 and a Strata checkout beside this one at `../Strata`, which the build includes from source. `strataDir` in `gradle.properties` names another checkout.
 
 ```bash
 git clone https://github.com/InspireNXE/Strata.git
