@@ -23,7 +23,10 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.display.InfoBar;
 import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.pane.Expander;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.layout.AbsolutePanel;
 import org.inspirenxe.strata.api.text.TextSpan;
@@ -260,6 +263,21 @@ class MenuPanelTest {
         assertTrue(routes(Optional.of(root), panel), "over the root");
         assertTrue(routes(Optional.of(panel), panel), "over the panel");
         assertFalse(routes(Optional.of(label), panel), "over other Strata content");
+    }
+
+    @Test
+    void pointerInputFindsThePanelThroughComposites() {
+        final MenuPanel panel = new MenuPanel(this.host.factory(), this.owner);
+        final Button retry = this.host.factory().button("Retry");
+        final Expander expander = this.host.factory().expander("Grinder").setContent(panel).setExpanded(true);
+        final InfoBar bar = this.host.factory().infoBar().setAction(retry);
+        final AbsolutePanel root = this.host.factory().absolutePanel().add(expander, 10f, 20f).add(bar, 0f, 150f);
+        this.host.open(ui -> root);
+        this.host.layout();
+
+        assertTrue(routes(Optional.of(panel), panel), "over the panel inside an expander");
+        assertFalse(routes(Optional.of(retry), panel), "over an info bar's action");
+        assertFalse(routes(Optional.of(expander), panel), "over the expander's header");
     }
 
     @Test

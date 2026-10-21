@@ -29,7 +29,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import org.inspirenxe.strata.api.component.Container;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.KeyAction;
@@ -428,11 +427,9 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             this.hideMenu();
             return;
         }
-        for (Container<?> parent = shown.parent(); parent != null; parent = parent.parent()) {
-            if (parent instanceof ScrollPanel) {
-                throw new IllegalStateException("A MenuPanel cannot be inside a ScrollPanel: " + parent);
-            }
-        }
+        shown.ancestor(ScrollPanel.class).ifPresent(scroll -> {
+            throw new IllegalStateException("A MenuPanel cannot be inside a ScrollPanel: " + scroll);
+        });
         if (!isShown(shown)) {
             this.hideMenu();
             return;
