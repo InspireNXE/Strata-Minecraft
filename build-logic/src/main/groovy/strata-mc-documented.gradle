@@ -1,12 +1,15 @@
-// For every library project: api, spi, core and the adapters. Javadoc runs with every doclint check, including
-// missing comments, @param, @return and @throws, and any warning fails the build. A javadoc jar is built with the
-// sources jar.
+// common and sponge, whose classes mods use directly. Javadoc runs with every doclint check, including missing
+// comments, @param, @return and @throws, and any warning fails the build. The published javadoc jar holds it.
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
+
 plugins {
     id 'strata-mc-java'
 }
 
-java {
-    withJavadocJar()
+mavenPublishing {
+    configure(new JavaLibrary(new JavadocJar.Javadoc(), new SourcesJar.Sources()))
 }
 
 tasks.named('javadoc', Javadoc) {

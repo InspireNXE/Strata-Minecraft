@@ -4,4 +4,10 @@ plugins {
 
 repositories {
     gradlePluginPortal()
+    mavenCentral()
+}
+
+dependencies {
+    // Publishing to Maven Central, see https://github.com/vanniktech/gradle-maven-publish-plugin/blob/main/CHANGELOG.md
+    implementation('com.vanniktech:gradle-maven-publish-plugin:0.37.0')
 }

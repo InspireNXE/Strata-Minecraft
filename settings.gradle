@@ -27,12 +27,17 @@ plugins {
 rootProject.name = 'Strata-Minecraft'
 includeBuild('build-logic')
 
-// Strata itself, built from the sibling checkout until it is published. strataDir in gradle.properties or on the
-// command line (-PstrataDir=...) names another checkout, such as a worktree of Strata's java17 branch.
-includeBuild(providers.gradleProperty('strataDir').getOrElse('../Strata')) {
-    dependencySubstitution {
-        ['api', 'spi', 'core'].each { name ->
-            substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+// Strata itself, from the checkout beside this one when there is one, so changes to it reach the adapter at once.
+// strataDir in gradle.properties or on the command line (-PstrataDir=...) names another checkout, such as a worktree
+// of Strata's java17 branch. Without a checkout, strata_version comes from Maven Central, as in the publishing
+// workflows.
+def strataDir = providers.gradleProperty('strataDir').getOrElse('../Strata')
+if (file("${strataDir}/settings.gradle").exists()) {
+    includeBuild(strataDir) {
+        dependencySubstitution {
+            ['api', 'spi', 'core'].each { name ->
+                substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+            }
         }
     }
 }

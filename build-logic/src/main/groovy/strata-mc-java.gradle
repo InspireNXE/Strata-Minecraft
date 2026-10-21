@@ -1,7 +1,8 @@
-// Every Strata-Minecraft project: Java 25, JUnit, sources jar, shared jar metadata
+// Every Strata-Minecraft project: Java 25, JUnit, shared jar metadata, and publishing to Maven Central. Each project
+// also applies strata-mc-documented or strata-mc-loader, which choose what goes in its javadoc jar.
 plugins {
     id 'java-library'
-    id 'maven-publish'
+    id 'com.vanniktech.maven.publish'
 }
 
 base {
@@ -10,11 +11,19 @@ base {
 
 repositories {
     mavenCentral()
+    // Strata's own snapshots, for builds that take Strata from Central instead of a checkout beside them
+    maven {
+        name = 'CentralSnapshots'
+        url = uri('https://central.sonatype.com/repository/maven-snapshots/')
+        mavenContent {
+            snapshotsOnly()
+            includeGroup('org.inspirenxe')
+        }
+    }
 }
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(java_version)
-    withSourcesJar()
 }
 
 dependencies {
@@ -77,11 +86,40 @@ processResources {
     inputs.properties(expandProps)
 }
 
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            artifactId = base.archivesName.get()
-            from components.java
+// Snapshots go to Central's snapshot repository and releases to Central itself. The workflows pass the portal token
+// and the signing key as Gradle properties (mavenCentralUsername, mavenCentralPassword, signingInMemoryKey and
+// signingInMemoryKeyPassword); snapshots are signed only when a key is given.
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+
+    pom {
+        name = base.archivesName
+        description = providers.provider { project.description ?: rootProject.property('description') }
+        inceptionYear = '2026'
+        url = 'https://github.com/InspireNXE/Strata-Minecraft'
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+            }
+        }
+        developers {
+            developer {
+                id = 'inspirenxe'
+                name = 'InspireNXE'
+                url = 'https://github.com/InspireNXE'
+            }
+        }
+        scm {
+            url = 'https://github.com/InspireNXE/Strata-Minecraft'
+            connection = 'scm:git:https://github.com/InspireNXE/Strata-Minecraft.git'
+            developerConnection = 'scm:git:ssh://git@github.com/InspireNXE/Strata-Minecraft.git'
         }
     }
+}
+
+afterEvaluate {
+    mavenPublishing.coordinates(project.group.toString(), base.archivesName.get(), project.version.toString())
 }

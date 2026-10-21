@@ -1,7 +1,17 @@
-// neoforge, forge and fabric: compile the common sources into the loader's own jar. Each loader's build file puts Strata on
-// the classpath and nests its jars in the mod jar its own way.
+// neoforge, forge, fabric and spongevanilla: compile the common sources into the loader's own jar. Each loader's build
+// file puts Strata on the classpath and nests its jars in the mod jar its own way.
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
+
 plugins {
     id 'strata-mc-java'
+}
+
+// The loader classes hold no API of their own, so the javadoc jar Central requires is empty. This makes the sources jar
+// the tasks below add to.
+mavenPublishing {
+    configure(new JavaLibrary(new JavadocJar.Empty(), new SourcesJar.Sources()))
 }
 
 configurations {
