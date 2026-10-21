@@ -48,8 +48,9 @@ import java.util.function.Function;
  *
  * <p>How it meets the canvas contract on Minecraft 26.3:</p>
  * <ul>
- *     <li>Minecraft draws in whole GUI pixels. Fills and clips round outward (left and top down, right and bottom
- *     up), so a fractional rectangle is never cut short; text positions round to the nearest pixel.</li>
+ *     <li>Minecraft draws in whole GUI pixels. Each edge of a fill, sprite or clip moves down to the whole pixel it
+ *     lies in, as vanilla's integer coordinates would put it, so a whole-sized rectangle keeps its size wherever it
+ *     sits; text positions round to the nearest pixel.</li>
  *     <li>Sprites come from the {@code minecraft:gui} atlas, which reads {@code assets/<namespace>/textures/gui/
  *     sprites/<path>.png}, and draw with vanilla's {@code GUI_TEXTURED} pipeline. The tint is passed as vanilla's
  *     sprite color.</li>
@@ -62,7 +63,7 @@ import java.util.function.Function;
  *     scales push and pop the pose matrix.</li>
  *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
  *     visuals draw the face and hat from the skin texture with vanilla's {@code GUI_TEXTURED} pipeline, stretched
- *     over the rectangle rounded outward and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
+ *     over the rectangle snapped to whole pixels and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
  *     tooltip, covers earlier layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
@@ -288,10 +289,10 @@ public final class MinecraftCanvas implements Canvas {
     }
 
     private static int right(final Rect rect) {
-        return (int) Math.ceil(rect.right());
+        return (int) Math.floor(rect.right());
     }
 
     private static int bottom(final Rect rect) {
-        return (int) Math.ceil(rect.bottom());
+        return (int) Math.floor(rect.bottom());
     }
 }

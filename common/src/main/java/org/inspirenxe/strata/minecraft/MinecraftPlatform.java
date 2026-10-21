@@ -22,6 +22,7 @@ import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.spi.Capabilities;
 import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
+import org.inspirenxe.strata.spi.Conventions;
 import org.inspirenxe.strata.spi.Platform;
 import org.inspirenxe.strata.spi.TextInputSink;
 import org.inspirenxe.strata.spi.ThemeSource;
@@ -42,6 +43,8 @@ import java.util.Optional;
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
  *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
  *     {@link Capabilities#slicesSprites()} is true and sized and tiled paints reach the canvas whole.</li>
+ *     <li>Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down, so
+ *     {@link Conventions#activateOnPress()} is true.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
  *     <li>The cause stack is the one {@link StrataMinecraft#install(CauseStack)} was given, such as Sponge's, or
  *     Strata's own when it was started without one.</li>
@@ -51,6 +54,8 @@ import java.util.Optional;
  */
 public final class MinecraftPlatform implements Platform {
     private static final Capabilities CAPABILITIES = new Capabilities(true, false, true);
+    // Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down
+    private static final Conventions CONVENTIONS = new Conventions(true);
 
     private final Minecraft minecraft;
     private final MinecraftTextMetrics textMetrics;
@@ -126,6 +131,11 @@ public final class MinecraftPlatform implements Platform {
     @Override
     public Capabilities capabilities() {
         return CAPABILITIES;
+    }
+
+    @Override
+    public Conventions conventions() {
+        return CONVENTIONS;
     }
 
     @Override

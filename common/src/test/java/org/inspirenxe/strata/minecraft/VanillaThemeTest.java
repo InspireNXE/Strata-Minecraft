@@ -105,9 +105,10 @@ class VanillaThemeTest {
     }
 
     @Test
-    void thePressedButtonIsTheHighlightedOneDarkened() {
+    void thePressedButtonIsTheHighlightedOne() {
+        // Vanilla acts as the mouse button goes down and has no pressed look
         assertEquals(new Paint.NineSlice(SpriteId.of("minecraft", "widget/button_highlighted"), Insets.of(3f),
-                0xFFB0B0B0), this.vanilla.paint(Button.STYLE_PRESSED).orElseThrow());
+                0xFFFFFFFF), this.vanilla.paint(Button.STYLE_PRESSED).orElseThrow());
         assertEquals(new Insets(8f, 6f, 8f, 5f), this.vanilla.insets(Button.STYLE_PADDING).orElseThrow());
     }
 }

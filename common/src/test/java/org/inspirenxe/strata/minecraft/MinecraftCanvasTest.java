@@ -88,10 +88,10 @@ class MinecraftCanvasTest {
     }
 
     @Test
-    void fillsRoundOutwardToWholePixels() {
+    void fillsSnapEachEdgeDownToWholePixels() {
         this.canvas.fill(new Rect(1.5f, 2.5f, 3f, 3f), 0xFFFF0000);
 
-        verify(this.graphics).fill(1, 2, 5, 6, 0xFFFF0000);
+        verify(this.graphics).fill(1, 2, 4, 5, 0xFFFF0000);
     }
 
     @Test
@@ -113,7 +113,7 @@ class MinecraftCanvasTest {
         this.canvas.pushClip(new Rect(0.5f, 1f, 9f, 9.5f));
         this.canvas.popClip();
 
-        verify(this.graphics).enableScissor(0, 1, 10, 11);
+        verify(this.graphics).enableScissor(0, 1, 9, 10);
         verify(this.graphics).disableScissor();
     }
 
@@ -293,8 +293,8 @@ class MinecraftCanvasTest {
 
         this.canvas.visual(MinecraftVisuals.playerFace(skin), new Rect(10.5f, 20f, 16f, 16f), 0xFFFFFFFF);
 
-        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 8f, 8f, 17, 16, 8, 8, 64, 64, 0xFFFFFFFF);
-        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 40f, 8f, 17, 16, 8, 8, 64, 64, 0xFFFFFFFF);
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 8f, 8f, 16, 16, 8, 8, 64, 64, 0xFFFFFFFF);
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture, 10, 20, 40f, 8f, 16, 16, 8, 8, 64, 64, 0xFFFFFFFF);
     }
 
     @Test
