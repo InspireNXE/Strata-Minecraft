@@ -81,7 +81,7 @@ export JAVA_TOOL_OPTIONS="-Djdk.net.unixdomain.tmpdir=$PWD/.gradle/udstmp"
 
 ## Documentation
 
-Strata's guides, reference and Javadoc are on the [documentation site](https://inspirenxe.github.io/Strata/).
+Strata's guides, reference and Javadoc are on the [documentation site](https://inspirenxe.github.io/Strata-Docs/).
 
 ## License
 
