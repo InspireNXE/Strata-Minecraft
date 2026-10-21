@@ -1,4 +1,4 @@
-// Every Strata-Minecraft project: Java 25, JUnit, sources jar, shared jar metadata
+// Every Strata-Minecraft project: Java (java_version), JUnit, sources jar, shared jar metadata
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -25,7 +25,8 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile'])
+    // -try: Java 17 has no unnamed variables, so try-with-resources frames the body never names are named anyway
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile', '-Xlint:-try'])
 }
 
 tasks.named('test', Test) {
@@ -56,19 +57,16 @@ processResources {
             'mod_author'                   : mod_author,
             'license'                      : license,
             'description'                  : project.description ?: rootProject.property('description'),
-            'neoforge_version'             : neoforge_version,
-            'neoforge_loader_version_range': neoforge_loader_version_range,
             'forge_version'                : forge_version,
             'forge_loader_version_range'   : forge_loader_version_range,
-            'sponge_api_version_range'     : sponge_api_version_range,
             'java_version'                 : java_version
     ]
 
-    filesMatching(['META-INF/neoforge.mods.toml', 'META-INF/mods.toml']) {
+    filesMatching(['META-INF/mods.toml']) {
         expand expandProps
     }
 
-    filesMatching(['fabric.mod.json', 'META-INF/sponge_plugins.json', 'pack.mcmeta']) {
+    filesMatching(['fabric.mod.json', 'pack.mcmeta']) {
         expand expandProps.collectEntries { key, value ->
             [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
         }

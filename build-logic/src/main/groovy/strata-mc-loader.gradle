@@ -1,4 +1,4 @@
-// neoforge, forge and fabric: compile the common sources into the loader's own jar. Each loader's build file puts Strata on
+// forge and fabric: compile the common sources into the loader's own jar. Each loader's build file puts Strata on
 // the classpath and nests its jars in the mod jar its own way.
 plugins {
     id 'strata-mc-java'

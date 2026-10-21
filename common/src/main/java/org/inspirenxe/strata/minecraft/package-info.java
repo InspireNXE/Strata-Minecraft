@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * The Minecraft 26.3 adapter, written against vanilla classes only so that the NeoForge and Fabric jars share it.
+ * The Minecraft 1.20.1 adapter, written against vanilla classes only so that the Forge and Fabric jars share it.
  *
  * <p>Most mods need nothing here: {@code Strata.screens()} opens their screens, each in a
  * {@link org.inspirenxe.strata.minecraft.StrataScreen}, a vanilla screen that shows one Strata screen, in
@@ -27,7 +27,7 @@
  * components and {@code §} codes into styled spans, {@link org.inspirenxe.strata.minecraft.MinecraftTooltips} builds
  * tooltips from vanilla text, and {@link org.inspirenxe.strata.minecraft.control} holds components for Minecraft
  * objects. The other classes implement the SPI over vanilla:
- * {@link org.inspirenxe.strata.minecraft.MinecraftCanvas} draws through {@code GuiGraphicsExtractor},
+ * {@link org.inspirenxe.strata.minecraft.MinecraftCanvas} draws through {@code GuiGraphics},
  * {@link org.inspirenxe.strata.minecraft.MinecraftPlatform} and
  * {@link org.inspirenxe.strata.minecraft.MinecraftTextMetrics} wrap the client and its font, and
  * {@link org.inspirenxe.strata.minecraft.MinecraftInput} translates vanilla's input codes.</p>

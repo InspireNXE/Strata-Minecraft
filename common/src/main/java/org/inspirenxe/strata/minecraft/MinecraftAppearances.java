@@ -17,7 +17,6 @@ package org.inspirenxe.strata.minecraft;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.core.StrataCore;
@@ -28,7 +27,6 @@ import org.inspirenxe.strata.core.StrataCore;
  *     <li>{@link ItemStack}: the {@linkplain MinecraftVisuals#item(ItemStack) item visual} with every decoration, its
  *     hover name, and the tooltip vanilla shows for it in a slot, asked anew each time so it follows F3+H.</li>
  *     <li>{@link GameProfile}: the player's face with the hat layer, and the player's name.</li>
- *     <li>{@link PlayerSkin}: the skin's face with the hat layer.</li>
  * </ul>
  */
 final class MinecraftAppearances {
@@ -52,10 +50,7 @@ final class MinecraftAppearances {
                 .build());
         StrataCore.registerDefaultAppearance(GameProfile.class, Appearance.<GameProfile>builder()
                 .icon(MinecraftVisuals::playerFace)
-                .name(profile -> MinecraftText.of(Component.literal(profile.name())))
-                .build());
-        StrataCore.registerDefaultAppearance(PlayerSkin.class, Appearance.<PlayerSkin>builder()
-                .icon(MinecraftVisuals::playerFace)
+                .name(profile -> MinecraftText.of(Component.literal(profile.getName())))
                 .build());
     }
 }

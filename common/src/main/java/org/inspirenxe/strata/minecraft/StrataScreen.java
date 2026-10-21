@@ -17,11 +17,8 @@ package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.input.Key;
@@ -49,7 +46,7 @@ import java.util.Objects;
  * any other vanilla screen:</p>
  *
  * <pre>{@code
- * Minecraft.getInstance().gui.setScreen(
+ * Minecraft.getInstance().setScreen(
  *         new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.platform()));
  * }</pre>
  *
@@ -74,9 +71,13 @@ import java.util.Objects;
  *     <li>Minecraft reports held keys as repeated presses; this screen turns them into repeats.</li>
  *     <li>Strata counts clicks itself and ignores vanilla's double-click flag.</li>
  *     <li>Scroll amounts already include the player's wheel sensitivity. Fractional amounts count as
- *     {@link ScrollKind#PRECISE}.</li>
- *     <li>Minecraft gives no modifiers with pointer moves, scrolls or typed characters, so those report
- *     {@link Modifiers#NONE}.</li>
+ *     {@link ScrollKind#PRECISE}. Minecraft 1.20.1 reports vertical scrolling only.</li>
+ *     <li>The screen draws vanilla's background first: the world dimmed in game, the dirt in the menus.</li>
+ *     <li>Minecraft gives no modifiers with pointer presses, so the screen reads the held modifier keys from the
+ *     window for presses and releases. It gives none with pointer moves, scrolls or typed characters either, and
+ *     those report {@link Modifiers#NONE}.</li>
+ *     <li>Minecraft passes a character outside the Basic Multilingual Plane as two {@code char}s; the screen joins
+ *     them into one code point.</li>
  *     <li>Whether the game pauses behind the screen follows vanilla's {@link #isPauseScreen()}; override it to
  *     change that.</li>
  * </ul>
@@ -106,6 +107,10 @@ public class StrataScreen extends Screen {
      * Set while this screen closes back to its parent, so that removing it keeps the parent open.
      */
     private boolean returning;
+    /**
+     * The first half of a character typed as two {@code char}s, until the second arrives.
+     */
+    private char highSurrogate;
 
     /**
      * Creates the vanilla screen. Nothing is built until Minecraft opens it.
@@ -147,7 +152,9 @@ public class StrataScreen extends Screen {
      */
     StrataScreen(final Minecraft minecraft, final Font font, final Component title,
                  final org.inspirenxe.strata.api.screen.Screen content, final ThemeRef theme) {
-        super(minecraft, font, title);
+        super(title);
+        this.minecraft = minecraft;
+        this.font = font;
         this.content = Objects.requireNonNull(content, "content");
         this.theme = null;
         this.themeRef = Objects.requireNonNull(theme, "theme");
@@ -243,6 +250,10 @@ public class StrataScreen extends Screen {
     @Override
     public void removed() {
         this.heldKeys.clear();
+        this.highSurrogate = 0;
+        if (this.canvas != null) {
+            this.canvas.resetCursor();
+        }
         if (this.child == null) {
             this.closeHost();
             if (this.parent != null) {
@@ -353,10 +364,13 @@ public class StrataScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
-        super.extractRenderState(graphics, mouseX, mouseY, a);
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float a) {
+        // Vanilla's background, the dimmed world or the dirt, which 1.20.1's screens draw themselves
+        this.renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, a);
         this.canvas.begin(graphics);
         this.host.render(this.canvas);
+        this.canvas.end();
     }
 
     @Override
@@ -365,42 +379,50 @@ public class StrataScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(final MouseButtonEvent event, final boolean doubleClick) {
-        return this.host.pointerButton((float) event.x(), (float) event.y(), MinecraftInput.button(event.button()),
-                true, MinecraftInput.modifiers(event)) || super.mouseClicked(event, doubleClick);
+    public boolean mouseClicked(final double x, final double y, final int button) {
+        return this.host.pointerButton((float) x, (float) y, MinecraftInput.button(button), true,
+                MinecraftInput.heldModifiers()) || super.mouseClicked(x, y, button);
     }
 
     @Override
-    public boolean mouseReleased(final MouseButtonEvent event) {
-        return this.host.pointerButton((float) event.x(), (float) event.y(), MinecraftInput.button(event.button()),
-                false, MinecraftInput.modifiers(event)) || super.mouseReleased(event);
+    public boolean mouseReleased(final double x, final double y, final int button) {
+        return this.host.pointerButton((float) x, (float) y, MinecraftInput.button(button), false,
+                MinecraftInput.heldModifiers()) || super.mouseReleased(x, y, button);
     }
 
     @Override
-    public boolean mouseScrolled(final double x, final double y, final double scrollX, final double scrollY) {
-        return this.host.scroll((float) x, (float) y, MinecraftInput.scrollX(scrollX), (float) scrollY,
-                MinecraftInput.scrollKind(scrollX, scrollY), Modifiers.NONE)
-                || super.mouseScrolled(x, y, scrollX, scrollY);
+    public boolean mouseScrolled(final double x, final double y, final double delta) {
+        // Minecraft 1.20.1 scrolls on one axis only
+        return this.host.scroll((float) x, (float) y, 0f, (float) delta, MinecraftInput.scrollKind(0.0, delta),
+                Modifiers.NONE) || super.mouseScrolled(x, y, delta);
     }
 
     @Override
-    public boolean keyPressed(final KeyEvent event) {
-        final Key key = MinecraftInput.key(event.key());
+    public boolean keyPressed(final int keyCode, final int scanCode, final int modifiers) {
+        final Key key = MinecraftInput.key(keyCode);
         // Minecraft sends presses and repeats through the same method
         final KeyAction action = this.heldKeys.press(key);
-        return this.host.key(key, action, MinecraftInput.modifiers(event)) || super.keyPressed(event);
+        return this.host.key(key, action, MinecraftInput.modifiers(modifiers)) || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean keyReleased(final KeyEvent event) {
-        final Key key = MinecraftInput.key(event.key());
+    public boolean keyReleased(final int keyCode, final int scanCode, final int modifiers) {
+        final Key key = MinecraftInput.key(keyCode);
         this.heldKeys.release(key);
-        return this.host.key(key, KeyAction.RELEASE, MinecraftInput.modifiers(event)) || super.keyReleased(event);
+        return this.host.key(key, KeyAction.RELEASE, MinecraftInput.modifiers(modifiers))
+                || super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(final CharacterEvent event) {
-        return this.host.charTyped(event.codepoint(), Modifiers.NONE) || super.charTyped(event);
+    public boolean charTyped(final char character, final int modifiers) {
+        if (Character.isHighSurrogate(character)) {
+            this.highSurrogate = character;
+            return true;
+        }
+        final int codepoint = Character.isLowSurrogate(character) && this.highSurrogate != 0
+                ? Character.toCodePoint(this.highSurrogate, character) : character;
+        this.highSurrogate = 0;
+        return this.host.charTyped(codepoint, Modifiers.NONE) || super.charTyped(character, modifiers);
     }
 
     /**
@@ -408,17 +430,17 @@ public class StrataScreen extends Screen {
      */
     interface Switcher {
         /**
-         * Vanilla's own: {@code minecraft.gui}.
+         * Vanilla's own: {@code minecraft.screen} and {@code minecraft.setScreen}.
          */
         Switcher VANILLA = new Switcher() {
             @Override
             public Screen current(final Minecraft minecraft) {
-                return minecraft.gui.screen();
+                return minecraft.screen;
             }
 
             @Override
             public void set(final Minecraft minecraft, final Screen screen) {
-                minecraft.gui.setScreen(screen);
+                minecraft.setScreen(screen);
             }
         };
 

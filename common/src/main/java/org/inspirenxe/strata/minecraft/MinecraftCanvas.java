@@ -15,72 +15,102 @@
  */
 package org.inspirenxe.strata.minecraft;
 
-import com.mojang.blaze3d.platform.cursor.CursorType;
-import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
-import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.SkinManager;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import org.inspirenxe.strata.api.component.CursorKind;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.AtlasSpriteVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ProfileFaceVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.SkinFaceVisual;
+import org.inspirenxe.strata.minecraft.VanillaSprites.Fill;
+import org.inspirenxe.strata.minecraft.VanillaSprites.Fills;
+import org.inspirenxe.strata.minecraft.VanillaSprites.Region;
 import org.inspirenxe.strata.spi.Canvas;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
- * The Minecraft {@link Canvas}: records Strata's drawing into vanilla's {@link GuiGraphicsExtractor}, which renders
- * it later in the frame.
+ * The Minecraft {@link Canvas}: draws Strata's drawing through vanilla's {@link GuiGraphics} as it is called.
  *
- * <p>How it meets the canvas contract on Minecraft 26.3:</p>
+ * <p>How it meets the canvas contract on Minecraft 1.20.1:</p>
  * <ul>
  *     <li>Minecraft draws in whole GUI pixels. Each edge of a fill, sprite or clip moves down to the whole pixel it
  *     lies in, as vanilla's integer coordinates would put it, so a whole-sized rectangle keeps its size wherever it
  *     sits; text positions round to the nearest pixel.</li>
- *     <li>Sprites come from the {@code minecraft:gui} atlas, which reads {@code assets/<namespace>/textures/gui/
- *     sprites/<path>.png}, and draw with vanilla's {@code GUI_TEXTURED} pipeline. The tint is passed as vanilla's
- *     sprite color.</li>
- *     <li>A nine-slice draws as a plain sprite: vanilla applies the scaling in the sprite's {@code .png.mcmeta}
- *     ({@code "type": "nine_slice"}), and the border argument is ignored. A missing sprite draws vanilla's
- *     missing-texture pattern.</li>
+ *     <li>Later drawing covers earlier drawing. Fills use vanilla's {@code gui_overlay} render type and sprites draw
+ *     with the depth test off, so neither is hidden by the depth vanilla's text and items leave. After each item,
+ *     and at each {@link #nextLayer()}, the canvas clears the depth buffer inside the current clip.</li>
+ *     <li>1.20.1 has no gui sprite atlas. {@link VanillaSprites} maps the sprites newer versions keep there to
+ *     regions of 1.20.1's texture sheets, which resource packs replace as usual, or to the fills vanilla draws them
+ *     with. Any other sprite is the plain texture {@code assets/<namespace>/textures/gui/sprites/<path>.png}. The tint
+ *     is passed as vanilla's shader color, and multiplies the colors of fills.</li>
+ *     <li>A nine-slice of a sheet region that vanilla slices draws as vanilla slices it, with the edges and center
+ *     tiled, and the border argument is ignored. Any other nine-slice is cut into nine pieces at the border, its
+ *     corners at their size and the rest stretched. A missing texture draws vanilla's missing-texture pattern.</li>
  *     <li>Text draws as a chat component in the player's font, with vanilla's bold, italic, underline,
  *     strikethrough and shadow.</li>
- *     <li>Clips use vanilla's scissor stack, which intersects nested clips and follows the pose. Translations and
- *     scales push and pop the pose matrix.</li>
+ *     <li>Clips use vanilla's scissor stack, which intersects nested clips. Vanilla's scissor ignores the pose, so
+ *     the canvas moves each clip by the current translation and scale first. Translations and scales push and pop
+ *     the pose.</li>
  *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
- *     visuals draw the face and hat from the skin texture with vanilla's {@code GUI_TEXTURED} pipeline, stretched
- *     over the rectangle snapped to whole pixels and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
- *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
- *     tooltip, covers earlier layers.</li>
- *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
+ *     visuals draw the face and hat from the skin texture, stretched over the rectangle snapped to whole pixels and
+ *     tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
+ *     <li>1.20.1 has no cursor API, so cursors are set on the window through GLFW's standard cursors. A cursor the
+ *     system lacks shows as the arrow.</li>
  * </ul>
  *
- * <p>Call {@link #begin(GuiGraphicsExtractor)} at the start of every frame. Use it on the render thread only.</p>
+ * <p>Call {@link #begin(GuiGraphics)} at the start of every frame and {@link #end()} after it, and
+ * {@link #resetCursor()} when the screen goes away. Use it on the render thread only.</p>
  */
 public final class MinecraftCanvas implements Canvas {
     /**
      * What a visual this canvas cannot draw shows as.
      */
     public static final int MISSING_VISUAL_COLOR = 0xFFFF00FF;
+    private static final int WHITE = 0xFFFFFFFF;
+    /**
+     * Profiles that held only a name or an id, filled in by vanilla's profile cache, by the name or id they held.
+     */
+    private static final Map<String, GameProfile> FILLED = new ConcurrentHashMap<>();
+    private static final Set<String> REQUESTED = ConcurrentHashMap.newKeySet();
 
-    private final Map<SpriteId, Identifier> identifiers;
+    private final Map<SpriteId, ResourceLocation> textures;
+    private final Map<ResourceLocation, Optional<int[]>> sizes;
     private final MinecraftTextMetrics textMetrics;
-    private final Function<ResolvableProfile, PlayerSkin> skins;
-    private GuiGraphicsExtractor graphics;
+    private final Function<GameProfile, ResourceLocation> skins;
+    private final Backend backend;
+    private final Vector3f corner;
+    private GuiGraphics graphics;
+    private CursorKind cursor;
 
     /**
      * Creates a canvas.
@@ -88,28 +118,50 @@ public final class MinecraftCanvas implements Canvas {
      * @param font the font text is drawn and measured with, usually the screen's
      */
     public MinecraftCanvas(final Font font) {
-        this(font, profile -> Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin());
+        this(font, MinecraftCanvas::skinOf, Backend.VANILLA);
     }
 
     /**
-     * Creates a canvas that looks player skins up with the given function, for tests.
+     * Creates a canvas that looks player skins up with the given function and reaches the render system through
+     * the given backend, for tests.
      *
      * @param font the font text is drawn and measured with
-     * @param skins returns the skin to draw for a profile, at once
+     * @param skins returns the skin texture to draw for a profile, at once
+     * @param backend the render system calls the graphics do not cover
      */
-    MinecraftCanvas(final Font font, final Function<ResolvableProfile, PlayerSkin> skins) {
-        this.identifiers = new HashMap<>();
+    MinecraftCanvas(final Font font, final Function<GameProfile, ResourceLocation> skins, final Backend backend) {
+        this.textures = new HashMap<>();
+        this.sizes = new HashMap<>();
         this.textMetrics = new MinecraftTextMetrics(font);
         this.skins = skins;
+        this.backend = backend;
+        this.corner = new Vector3f();
+        this.cursor = CursorKind.ARROW;
     }
 
     /**
      * Points the canvas at this frame's graphics.
      *
-     * @param graphics the graphics vanilla passed to the screen's {@code extractRenderState}
+     * @param graphics the graphics vanilla passed to the screen's {@code render}
      */
-    public void begin(final GuiGraphicsExtractor graphics) {
+    public void begin(final GuiGraphics graphics) {
         this.graphics = graphics;
+        this.cursor = CursorKind.ARROW;
+    }
+
+    /**
+     * Ends the frame: shows the cursor the frame asked for, or the arrow if it asked for none.
+     */
+    public void end() {
+        this.backend.setCursor(this.cursor);
+    }
+
+    /**
+     * Shows the arrow cursor again, for when the screen closes.
+     */
+    public void resetCursor() {
+        this.cursor = CursorKind.ARROW;
+        this.backend.setCursor(CursorKind.ARROW);
     }
 
     /**
@@ -126,24 +178,167 @@ public final class MinecraftCanvas implements Canvas {
         if ((argb >>> 24) == 0) {
             return;
         }
-        this.graphics.fill(left(rect), top(rect), right(rect), bottom(rect), argb);
+        this.graphics.fill(RenderType.guiOverlay(), left(rect), top(rect), right(rect), bottom(rect), argb);
     }
 
     @Override
     public void fillGradient(final Rect rect, final int topArgb, final int bottomArgb) {
-        this.graphics.fillGradient(left(rect), top(rect), right(rect), bottom(rect), topArgb, bottomArgb);
+        this.graphics.fillGradient(RenderType.guiOverlay(), left(rect), top(rect), right(rect), bottom(rect),
+                topArgb, bottomArgb, 0);
     }
 
     @Override
     public void sprite(final SpriteId sprite, final Rect rect, final int tint) {
-        this.graphics.blitSprite(RenderPipelines.GUI_TEXTURED, this.identifier(sprite),
-                left(rect), top(rect), right(rect) - left(rect), bottom(rect) - top(rect), tint);
+        if ((tint >>> 24) == 0) {
+            return;
+        }
+        final VanillaSprites.Sprite kept = VanillaSprites.of(sprite).orElse(null);
+        if (kept instanceof final Fills fills) {
+            this.fills(fills, rect, tint);
+            return;
+        }
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        this.beginTint(tint);
+        try {
+            if (kept instanceof final Region region) {
+                this.drawRegion(region, x, y, width, height);
+            } else {
+                // The whole texture, whatever its size
+                this.graphics.blit(this.texture(sprite), x, y, width, height, 0f, 0f, 1, 1, 1, 1);
+            }
+        } finally {
+            this.endTint(tint);
+        }
     }
 
     @Override
     public void nineSlice(final SpriteId sprite, final Rect rect, final Insets border, final int tint) {
-        // The sprite's .png.mcmeta "gui.scaling" decides how it stretches
-        this.sprite(sprite, rect, tint);
+        final VanillaSprites.Sprite kept = VanillaSprites.of(sprite).orElse(null);
+        if (kept instanceof Fills || (kept instanceof final Region region && region.slices() != null)
+                || border.equals(Insets.NONE)) {
+            // Fills scale, and vanilla slices its own regions
+            this.sprite(sprite, rect, tint);
+            return;
+        }
+        if ((tint >>> 24) == 0) {
+            return;
+        }
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        final ResourceLocation texture;
+        final int textureWidth;
+        final int textureHeight;
+        final int u;
+        final int v;
+        final int sourceWidth;
+        final int sourceHeight;
+        if (kept instanceof final Region region) {
+            texture = region.texture();
+            textureWidth = region.textureWidth();
+            textureHeight = region.textureHeight();
+            u = region.u();
+            v = region.v();
+            sourceWidth = region.width();
+            sourceHeight = region.height();
+        } else {
+            texture = this.texture(sprite);
+            final Optional<int[]> size = this.sizes.computeIfAbsent(texture, this.backend::textureSize);
+            if (size.isEmpty()) {
+                // Missing: vanilla's missing-texture pattern, stretched
+                this.sprite(sprite, rect, tint);
+                return;
+            }
+            textureWidth = size.get()[0];
+            textureHeight = size.get()[1];
+            u = 0;
+            v = 0;
+            sourceWidth = textureWidth;
+            sourceHeight = textureHeight;
+        }
+        final int[] columns = slices(Math.round(border.left()), Math.round(border.right()), sourceWidth, width);
+        final int[] rows = slices(Math.round(border.top()), Math.round(border.bottom()), sourceHeight, height);
+        this.beginTint(tint);
+        try {
+            int sourceY = v;
+            int destY = y;
+            for (int row = 0; row < 3; row++) {
+                int sourceX = u;
+                int destX = x;
+                for (int column = 0; column < 3; column++) {
+                    if (columns[column + 3] > 0 && rows[row + 3] > 0 && columns[column] > 0 && rows[row] > 0) {
+                        this.graphics.blit(texture, destX, destY, columns[column + 3], rows[row + 3], sourceX, sourceY,
+                                columns[column], rows[row], textureWidth, textureHeight);
+                    }
+                    sourceX += columns[column];
+                    destX += columns[column + 3];
+                }
+                sourceY += rows[row];
+                destY += rows[row + 3];
+            }
+        } finally {
+            this.endTint(tint);
+        }
+    }
+
+    /**
+     * Works out one axis of a nine-slice: the source sizes of the three pieces, then their drawn sizes. Borders
+     * wider than the drawn size shrink in proportion.
+     *
+     * @param start the border at the left or top, in sprite pixels
+     * @param end the border at the right or bottom
+     * @param source the sprite's size along the axis
+     * @param dest the drawn size along the axis
+     * @return the source sizes of the first, middle and last pieces, then their drawn sizes
+     */
+    static int[] slices(final int start, final int end, final int source, final int dest) {
+        final int first = Math.max(0, Math.min(start, source));
+        final int last = Math.max(0, Math.min(end, source - first));
+        int firstDest = first;
+        int lastDest = last;
+        if (first + last > dest) {
+            firstDest = Math.round((float) dest * first / (first + last));
+            lastDest = dest - firstDest;
+        }
+        return new int[] {first, source - first - last, last, firstDest, dest - firstDest - lastDest, lastDest};
+    }
+
+    private void drawRegion(final Region region, final int x, final int y, final int width, final int height) {
+        final Insets slices = region.slices();
+        if (slices == null) {
+            this.graphics.blit(region.texture(), x, y, width, height, region.u(), region.v(), region.width(),
+                    region.height(), region.textureWidth(), region.textureHeight());
+            return;
+        }
+        // Vanilla's own nine-slice, which reads a 256 by 256 sheet, as its widgets do
+        this.graphics.blitNineSliced(region.texture(), x, y, width, height, Math.round(slices.left()),
+                Math.round(slices.top()), Math.round(slices.right()), Math.round(slices.bottom()), region.width(),
+                region.height(), region.u(), region.v());
+    }
+
+    private void fills(final Fills fills, final Rect rect, final int tint) {
+        final int x = left(rect);
+        final int y = top(rect);
+        final int right = right(rect);
+        final int bottom = bottom(rect);
+        for (final Fill fill : fills.fills()) {
+            final Insets inset = fill.inset();
+            final int argb = multiply(fill.argb(), tint);
+            if ((argb >>> 24) != 0) {
+                this.graphics.fill(RenderType.guiOverlay(), x + Math.round(inset.left()), y + Math.round(inset.top()),
+                        right - Math.round(inset.right()), bottom - Math.round(inset.bottom()), argb);
+            }
+        }
     }
 
     @Override
@@ -151,13 +346,22 @@ public final class MinecraftCanvas implements Canvas {
         if ((span.style().color() >>> 24) == 0 || span.text().isEmpty()) {
             return;
         }
-        this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x), Math.round(y),
-                span.style().color(), span.style().shadow());
+        this.graphics.drawString(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x),
+                Math.round(y), span.style().color(), span.style().shadow());
     }
 
     @Override
     public void pushClip(final Rect rect) {
-        this.graphics.enableScissor(left(rect), top(rect), right(rect), bottom(rect));
+        // Vanilla's scissor works in screen coordinates and ignores the pose
+        final Matrix4f pose = this.graphics.pose().last().pose();
+        pose.transformPosition(rect.x(), rect.y(), 0f, this.corner);
+        final float x0 = this.corner.x();
+        final float y0 = this.corner.y();
+        pose.transformPosition(rect.right(), rect.bottom(), 0f, this.corner);
+        final float x1 = this.corner.x();
+        final float y1 = this.corner.y();
+        this.graphics.enableScissor((int) Math.floor(Math.min(x0, x1)), (int) Math.floor(Math.min(y0, y1)),
+                (int) Math.floor(Math.max(x0, x1)), (int) Math.floor(Math.max(y0, y1)));
     }
 
     @Override
@@ -167,55 +371,55 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void pushTranslation(final float dx, final float dy) {
-        this.graphics.pose().pushMatrix();
-        this.graphics.pose().translate(dx, dy);
+        this.graphics.pose().pushPose();
+        this.graphics.pose().translate(dx, dy, 0f);
     }
 
     @Override
     public void pushScale(final float scale) {
-        this.graphics.pose().pushMatrix();
-        this.graphics.pose().scale(scale);
+        this.graphics.pose().pushPose();
+        this.graphics.pose().scale(scale, scale, 1f);
     }
 
     @Override
     public void popTransform() {
-        this.graphics.pose().popMatrix();
+        this.graphics.pose().popPose();
     }
 
     @Override
     public void visual(final Visual visual, final Rect rect, final int tint) {
-        switch (visual) {
-            case ItemVisual(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed) ->
-                    this.item(stack, decorations, fake, seed, rect, tint);
-            case ProfileFaceVisual(final ResolvableProfile profile, final boolean hat) ->
-                    this.playerFace(this.skins.apply(profile), hat, rect, tint);
-            case SkinFaceVisual(final PlayerSkin skin, final boolean hat) -> this.playerFace(skin, hat, rect, tint);
-            default -> this.fill(rect, MISSING_VISUAL_COLOR);
+        if (visual instanceof final ItemVisual item) {
+            this.item(item.stack(), item.decorations(), item.seed(), rect, tint);
+        } else if (visual instanceof final ProfileFaceVisual face) {
+            this.playerFace(this.skins.apply(face.profile()), face.hat(), rect, tint);
+        } else if (visual instanceof final SkinFaceVisual face) {
+            this.playerFace(face.texture(), face.hat(), rect, tint);
+        } else if (visual instanceof final AtlasSpriteVisual sprite) {
+            this.atlasSprite(sprite, rect, tint);
+        } else {
+            this.fill(rect, MISSING_VISUAL_COLOR);
         }
     }
 
-    private void item(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed,
-                      final Rect rect, final int tint) {
+    private void item(final ItemStack stack, final ItemDecorations decorations, final int seed, final Rect rect,
+                      final int tint) {
         if ((tint >>> 24) == 0 || stack.isEmpty() || rect.width() <= 0f || rect.height() <= 0f) {
             return;
         }
-        this.graphics.pose().pushMatrix();
+        this.graphics.pose().pushPose();
         try {
-            this.graphics.pose().translate(Math.round(rect.x()), Math.round(rect.y()));
+            this.graphics.pose().translate(Math.round(rect.x()), Math.round(rect.y()), 0f);
             this.graphics.pose().scale(rect.width() / MinecraftVisuals.ITEM_SIZE.width(),
-                    rect.height() / MinecraftVisuals.ITEM_SIZE.height());
-            if (fake) {
-                this.graphics.fakeItem(stack, 0, 0, seed);
-            } else {
-                this.graphics.item(stack, 0, 0, seed);
-            }
+                    rect.height() / MinecraftVisuals.ITEM_SIZE.height(), 1f);
+            this.graphics.renderItem(stack, 0, 0, seed);
             this.itemDecorations(stack, decorations);
         } finally {
-            this.graphics.pose().popMatrix();
+            this.graphics.pose().popPose();
+            this.clearDepth();
         }
     }
 
-    private void playerFace(final PlayerSkin skin, final boolean hat, final Rect rect, final int tint) {
+    private void playerFace(final ResourceLocation texture, final boolean hat, final Rect rect, final int tint) {
         final int x = left(rect);
         final int y = top(rect);
         final int width = right(rect) - x;
@@ -223,61 +427,169 @@ public final class MinecraftCanvas implements Canvas {
         if ((tint >>> 24) == 0 || width <= 0 || height <= 0) {
             return;
         }
-        // The face and the hat as vanilla's PlayerFaceExtractor reads them from a 64 by 64 skin
-        final Identifier texture = skin.body().texturePath();
-        this.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 8f, 8f, width, height, 8, 8, 64, 64, tint);
-        if (hat) {
-            this.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 40f, 8f, width, height, 8, 8, 64, 64, tint);
+        // The face and the hat as vanilla's PlayerFaceRenderer reads them from a 64 by 64 skin
+        this.beginTint(tint);
+        try {
+            this.graphics.blit(texture, x, y, width, height, 8f, 8f, 8, 8, 64, 64);
+            if (hat) {
+                this.graphics.blit(texture, x, y, width, height, 40f, 8f, 8, 8, 64, 64);
+            }
+        } finally {
+            this.endTint(tint);
+        }
+    }
+
+    private void atlasSprite(final AtlasSpriteVisual visual, final Rect rect, final int tint) {
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if ((tint >>> 24) == 0 || width <= 0 || height <= 0) {
+            return;
+        }
+        this.beginTint(tint);
+        try {
+            this.graphics.blit(x, y, 0, width, height, this.backend.atlasSprite(visual.atlas(), visual.sprite()));
+        } finally {
+            this.endTint(tint);
         }
     }
 
     private void itemDecorations(final ItemStack stack, final ItemDecorations decorations) {
         if (decorations.count() && decorations.damageBar()) {
-            this.graphics.itemDecorations(this.textMetrics.font(), stack, 0, 0);
+            this.graphics.renderItemDecorations(this.textMetrics.font(), stack, 0, 0);
             return;
         }
-        // The same positions and colors as vanilla's private itemBar and itemCount
+        // The same positions and colors as vanilla's renderItemDecorations
         if (decorations.damageBar() && stack.isBarVisible()) {
-            this.graphics.fill(2, 13, 15, 15, 0xFF000000);
-            this.graphics.fill(2, 13, 2 + stack.getBarWidth(), 14, ARGB.opaque(stack.getBarColor()));
+            this.graphics.fill(RenderType.guiOverlay(), 2, 13, 15, 15, 0xFF000000);
+            this.graphics.fill(RenderType.guiOverlay(), 2, 13, 2 + stack.getBarWidth(), 14, stack.getBarColor() | 0xFF000000);
         }
         if (decorations.count() && stack.getCount() != 1) {
             final String count = String.valueOf(stack.getCount());
-            this.graphics.text(this.textMetrics.font(), count, 17 - this.textMetrics.font().width(count), 9, 0xFFFFFFFF, true);
+            this.graphics.pose().pushPose();
+            try {
+                // Above the item, where vanilla puts the count
+                this.graphics.pose().translate(0f, 0f, 200f);
+                this.graphics.drawString(this.textMetrics.font(), count, 17 - this.textMetrics.font().width(count), 9,
+                        WHITE, true);
+            } finally {
+                this.graphics.pose().popPose();
+            }
         }
     }
 
     @Override
     public void nextLayer() {
-        this.graphics.nextStratum();
+        this.clearDepth();
     }
 
     @Override
     public void requestCursor(final CursorKind cursor) {
-        this.graphics.requestCursor(cursorType(cursor));
+        this.cursor = cursor;
     }
 
-    private Identifier identifier(final SpriteId sprite) {
-        return this.identifiers.computeIfAbsent(sprite, id -> Identifier.fromNamespaceAndPath(id.namespace(), id.path()));
+    private void clearDepth() {
+        this.graphics.flush();
+        this.backend.clearDepth();
+    }
+
+    private void beginTint(final int tint) {
+        this.backend.prepareBlit();
+        if (tint != WHITE) {
+            this.graphics.setColor(((tint >> 16) & 0xFF) / 255f, ((tint >> 8) & 0xFF) / 255f, (tint & 0xFF) / 255f,
+                    (tint >>> 24) / 255f);
+        }
+    }
+
+    private void endTint(final int tint) {
+        if (tint != WHITE) {
+            this.graphics.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    private ResourceLocation texture(final SpriteId sprite) {
+        return this.textures.computeIfAbsent(sprite, VanillaSprites::texture);
     }
 
     /**
-     * Maps a Strata cursor to vanilla's.
+     * Multiplies two colors channel by channel, as a tint does.
+     */
+    static int multiply(final int argb, final int tint) {
+        if (tint == WHITE) {
+            return argb;
+        }
+        int result = 0;
+        for (int shift = 0; shift < 32; shift += 8) {
+            final int channel = ((argb >>> shift) & 0xFF) * ((tint >>> shift) & 0xFF) / 255;
+            result |= channel << shift;
+        }
+        return result;
+    }
+
+    /**
+     * Returns the skin texture vanilla shows for a profile: the loaded one once the profile and its skin have
+     * arrived, and the built-in skin vanilla picks for the profile until then. A profile that holds only a name or an
+     * id is filled in once in the background through vanilla's profile cache, as player heads are.
+     *
+     * @param profile the profile
+     * @return the skin texture to draw now
+     */
+    static ResourceLocation skinOf(final GameProfile profile) {
+        GameProfile shown = profile;
+        if (!profile.getProperties().containsKey(SkinManager.PROPERTY_TEXTURES)) {
+            final String key = profile.getId() != null ? profile.getId().toString() : String.valueOf(profile.getName());
+            final GameProfile filled = FILLED.get(key);
+            if (filled != null) {
+                shown = filled;
+            } else if (REQUESTED.add(key)) {
+                SkullBlockEntity.updateGameprofile(profile, result -> {
+                    if (result != null) {
+                        FILLED.put(key, result);
+                    }
+                });
+            }
+        }
+        return Minecraft.getInstance().getSkinManager().getInsecureSkinLocation(shown);
+    }
+
+    /**
+     * Maps a Strata cursor to a GLFW standard cursor shape.
      *
      * @param cursor the Strata cursor
-     * @return the vanilla cursor
+     * @return the GLFW shape
      */
-    static CursorType cursorType(final CursorKind cursor) {
+    static int cursorShape(final CursorKind cursor) {
         return switch (cursor) {
-            case ARROW -> CursorTypes.ARROW;
-            case TEXT -> CursorTypes.IBEAM;
-            case HAND -> CursorTypes.POINTING_HAND;
-            case CROSSHAIR -> CursorTypes.CROSSHAIR;
-            case RESIZE_HORIZONTAL -> CursorTypes.RESIZE_EW;
-            case RESIZE_VERTICAL -> CursorTypes.RESIZE_NS;
-            case RESIZE_ALL -> CursorTypes.RESIZE_ALL;
-            case NOT_ALLOWED -> CursorTypes.NOT_ALLOWED;
+            case ARROW -> GLFW.GLFW_ARROW_CURSOR;
+            case TEXT -> GLFW.GLFW_IBEAM_CURSOR;
+            case HAND -> GLFW.GLFW_POINTING_HAND_CURSOR;
+            case CROSSHAIR -> GLFW.GLFW_CROSSHAIR_CURSOR;
+            case RESIZE_HORIZONTAL -> GLFW.GLFW_RESIZE_EW_CURSOR;
+            case RESIZE_VERTICAL -> GLFW.GLFW_RESIZE_NS_CURSOR;
+            case RESIZE_ALL -> GLFW.GLFW_RESIZE_ALL_CURSOR;
+            case NOT_ALLOWED -> GLFW.GLFW_NOT_ALLOWED_CURSOR;
         };
+    }
+
+    /**
+     * Reads the width and height from the header of a PNG image.
+     *
+     * @param in the image, read from its start; not closed
+     * @return the width and height, or empty if it is not a PNG image
+     * @throws IOException if reading fails
+     */
+    static Optional<int[]> pngSize(final InputStream in) throws IOException {
+        final DataInputStream data = new DataInputStream(in);
+        // The 8-byte signature, then the IHDR chunk's length and type, then its width and height
+        if (data.readLong() != 0x89504E470D0A1A0AL) {
+            return Optional.empty();
+        }
+        data.readInt();
+        if (data.readInt() != 0x49484452) {
+            return Optional.empty();
+        }
+        return Optional.of(new int[] {data.readInt(), data.readInt()});
     }
 
     private static int left(final Rect rect) {
@@ -294,5 +606,85 @@ public final class MinecraftCanvas implements Canvas {
 
     private static int bottom(final Rect rect) {
         return (int) Math.floor(rect.bottom());
+    }
+
+    /**
+     * What the canvas needs from the game beyond the graphics. Tests replace it, since they have no render system.
+     */
+    interface Backend {
+        /**
+         * The running game's.
+         */
+        Backend VANILLA = new Backend() {
+            private final Map<CursorKind, Long> cursors = new EnumMap<>(CursorKind.class);
+            private CursorKind shown = CursorKind.ARROW;
+
+            @Override
+            public Optional<int[]> textureSize(final ResourceLocation texture) {
+                final Optional<Resource> resource = Minecraft.getInstance().getResourceManager().getResource(texture);
+                if (resource.isEmpty()) {
+                    return Optional.empty();
+                }
+                try (InputStream in = resource.get().open()) {
+                    return pngSize(in);
+                } catch (final IOException unreadable) {
+                    return Optional.empty();
+                }
+            }
+
+            @Override
+            public TextureAtlasSprite atlasSprite(final ResourceLocation atlas, final ResourceLocation sprite) {
+                return Minecraft.getInstance().getTextureAtlas(atlas).apply(sprite);
+            }
+
+            @Override
+            public void prepareBlit() {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.disableDepthTest();
+            }
+
+            @Override
+            public void clearDepth() {
+                RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+            }
+
+            @Override
+            public void setCursor(final CursorKind cursor) {
+                if (cursor == this.shown) {
+                    return;
+                }
+                this.shown = cursor;
+                // A shape the system lacks gives no cursor, which GLFW shows as the arrow
+                final long handle = cursor == CursorKind.ARROW ? 0L
+                        : this.cursors.computeIfAbsent(cursor, kind -> GLFW.glfwCreateStandardCursor(cursorShape(kind)));
+                GLFW.glfwSetCursor(Minecraft.getInstance().getWindow().getWindow(), handle);
+            }
+        };
+
+        /**
+         * Returns the size of a plain texture, read from its image.
+         */
+        Optional<int[]> textureSize(ResourceLocation texture);
+
+        /**
+         * Returns a sprite of a texture atlas, such as the block atlas that slot icons come from.
+         */
+        TextureAtlasSprite atlasSprite(ResourceLocation atlas, ResourceLocation sprite);
+
+        /**
+         * Sets the blending and depth state sprites draw with.
+         */
+        void prepareBlit();
+
+        /**
+         * Clears the depth buffer inside the current scissor.
+         */
+        void clearDepth();
+
+        /**
+         * Shows a cursor on the game's window.
+         */
+        void setCursor(CursorKind cursor);
     }
 }

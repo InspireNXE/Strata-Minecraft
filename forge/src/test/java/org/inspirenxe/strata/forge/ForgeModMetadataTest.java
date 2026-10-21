@@ -48,7 +48,7 @@ class ForgeModMetadataTest {
     void declaresTheModAndItsRequirements() throws IOException {
         final String toml = metadata().replace(" ", "");
         assertTrue(toml.contains("modId=\"strata\""), "the mod id is strata");
-        assertTrue(toml.contains("versionRange=\"[26.3,26.4)\""), "it requires Minecraft 26.3");
+        assertTrue(toml.contains("versionRange=\"[1.20.1,1.20.2)\""), "it requires Minecraft 1.20.1");
         assertTrue(toml.contains("side=\"CLIENT\""), "its dependencies are client-side");
     }
 

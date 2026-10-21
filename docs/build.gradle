@@ -1,13 +1,13 @@
 plugins {
     id 'strata-mc-java'
     // Vanilla classes for the examples
-    id 'net.neoforged.moddev'
+    id 'net.neoforged.moddev.legacyforge'
 }
 
 description = 'The code the Minecraft documentation shows, compiled so every example stays correct.'
 
-neoForge {
-    neoFormVersion = neo_form_version
+legacyForge {
+    mcpVersion = minecraft_version
 }
 
 dependencies {

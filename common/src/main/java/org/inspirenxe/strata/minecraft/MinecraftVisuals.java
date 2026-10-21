@@ -16,9 +16,8 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.visual.Visual;
 
@@ -74,67 +73,56 @@ public final class MinecraftVisuals {
      * @return the visual, 16 by 16
      */
     public static Visual item(final ItemStack stack, final ItemDecorations decorations) {
-        return new ItemVisual(stack.copy(), decorations, false, 0);
-    }
-
-    /**
-     * Returns a visual of a player's face with the hat layer, from a profile that already holds its skin, such as
-     * {@code player.getGameProfile()} for a player in the level.
-     *
-     * @param profile the profile
-     * @return the visual, 8 by 8
-     * @see #playerFace(ResolvableProfile, boolean)
-     */
-    public static Visual playerFace(final GameProfile profile) {
-        return playerFace(ResolvableProfile.createResolved(profile), true);
+        return new ItemVisual(stack.copy(), decorations, 0);
     }
 
     /**
      * Returns a visual of a player's face with the hat layer.
      *
-     * @param profile the profile, which may name only the player, as {@code ResolvableProfile.createUnresolved(name)}
-     *                does
+     * @param profile the profile, such as {@code player.getGameProfile()} for a player in the level, or
+     *                {@code new GameProfile(null, name)} for a player known only by name
      * @return the visual, 8 by 8
-     * @see #playerFace(ResolvableProfile, boolean)
+     * @see #playerFace(GameProfile, boolean)
      */
-    public static Visual playerFace(final ResolvableProfile profile) {
+    public static Visual playerFace(final GameProfile profile) {
         return playerFace(profile, true);
     }
 
     /**
      * Returns a visual of a player's face from a profile whose skin the game looks up. The canvas asks vanilla's
-     * player skin cache for the skin every time it draws, so the face shows the built-in skin vanilla picks for the
-     * profile's id until the real one has loaded, and the real one after, as vanilla's player face widget does. A
-     * profile that holds only a name or an id is looked up in the background, in the server's player list first
-     * and then through Mojang's services.
+     * skin manager for the skin every time it draws, so the face shows the built-in skin vanilla picks for the
+     * profile until the real one has loaded, and the real one after, as vanilla's player list does. A profile that
+     * holds only a name or an id is filled in once in the background through vanilla's profile cache, as player
+     * heads are.
      *
-     * @param profile the profile, which may name only the player, as {@code ResolvableProfile.createUnresolved(name)}
-     *                does
+     * @param profile the profile, such as {@code player.getGameProfile()} for a player in the level, or
+     *                {@code new GameProfile(null, name)} for a player known only by name
      * @param hat whether to draw the skin's hat layer over the face
      * @return the visual, 8 by 8
      */
-    public static Visual playerFace(final ResolvableProfile profile, final boolean hat) {
+    public static Visual playerFace(final GameProfile profile, final boolean hat) {
         return new ProfileFaceVisual(profile, hat);
     }
 
     /**
-     * Returns a visual of the face of a skin the caller already has, with the hat layer.
+     * Returns a visual of the face of a skin texture the caller already has, with the hat layer.
      *
-     * @param skin the skin
+     * @param skin the skin texture
      * @return the visual, 8 by 8
      */
-    public static Visual playerFace(final PlayerSkin skin) {
+    public static Visual playerFace(final ResourceLocation skin) {
         return playerFace(skin, true);
     }
 
     /**
-     * Returns a visual of the face of a skin the caller already has, such as one of {@code DefaultPlayerSkin}'s.
+     * Returns a visual of the face of a skin texture the caller already has, such as one of
+     * {@code DefaultPlayerSkin}'s.
      *
-     * @param skin the skin; its body texture is drawn
+     * @param skin the skin texture, 64 by 64
      * @param hat whether to draw the skin's hat layer over the face
      * @return the visual, 8 by 8
      */
-    public static Visual playerFace(final PlayerSkin skin, final boolean hat) {
+    public static Visual playerFace(final ResourceLocation skin, final boolean hat) {
         return new SkinFaceVisual(skin, hat);
     }
 
@@ -162,15 +150,14 @@ public final class MinecraftVisuals {
 
     /**
      * An item stack for the Minecraft canvas. Two are equal when their stacks match by {@link ItemStack#matches}
-     * (same item, count and components) and everything else is equal.
+     * (same item, count and tag) and everything else is equal.
      *
      * @param stack the stack, a copy owned by the visual and never changed
      * @param decorations the decorations to draw
-     * @param fake whether to draw it as vanilla draws a fake slot's item, with no entity holding it
      * @param seed the seed vanilla's item models pick random variants with; vanilla's slots use
      *             {@code x + y * imageWidth}, and lone items 0
      */
-    record ItemVisual(ItemStack stack, ItemDecorations decorations, boolean fake, int seed) implements Visual {
+    record ItemVisual(ItemStack stack, ItemDecorations decorations, int seed) implements Visual {
         ItemVisual {
             Objects.requireNonNull(stack, "stack");
             Objects.requireNonNull(decorations, "decorations");
@@ -183,23 +170,22 @@ public final class MinecraftVisuals {
 
         @Override
         public boolean equals(final Object other) {
-            return other instanceof ItemVisual(final ItemStack otherStack, final ItemDecorations otherDecorations,
-                                               final boolean otherFake, final int otherSeed)
-                    && ItemStack.matches(this.stack, otherStack)
-                    && this.decorations.equals(otherDecorations)
-                    && this.fake == otherFake
-                    && this.seed == otherSeed;
+            return other instanceof final ItemVisual visual
+                    && ItemStack.matches(this.stack, visual.stack)
+                    && this.decorations.equals(visual.decorations)
+                    && this.seed == visual.seed;
         }
 
         @Override
         public int hashCode() {
-            final int stackHash = 31 * ItemStack.hashItemAndComponents(this.stack) + this.stack.getCount();
-            return 31 * (31 * (31 * stackHash + this.decorations.hashCode()) + Boolean.hashCode(this.fake)) + this.seed;
+            final int stackHash = 31 * (31 * this.stack.getItem().hashCode() + Objects.hashCode(this.stack.getTag()))
+                    + this.stack.getCount();
+            return 31 * (31 * stackHash + this.decorations.hashCode()) + this.seed;
         }
 
         @Override
         public String toString() {
-            return "ItemVisual[" + this.stack + ", " + this.decorations + (this.fake ? ", fake" : "") + ", seed " + this.seed + "]";
+            return "ItemVisual[" + this.stack + ", " + this.decorations + ", seed " + this.seed + "]";
         }
     }
 
@@ -209,7 +195,7 @@ public final class MinecraftVisuals {
      * @param profile the profile whose skin is drawn
      * @param hat whether the hat layer is drawn
      */
-    record ProfileFaceVisual(ResolvableProfile profile, boolean hat) implements Visual {
+    record ProfileFaceVisual(GameProfile profile, boolean hat) implements Visual {
         ProfileFaceVisual {
             Objects.requireNonNull(profile, "profile");
         }
@@ -221,14 +207,32 @@ public final class MinecraftVisuals {
     }
 
     /**
-     * The face of a given skin.
+     * A sprite of a texture atlas other than the GUI's, such as the block atlas sprite an empty slot shows.
      *
-     * @param skin the skin drawn
+     * @param atlas the atlas texture
+     * @param sprite the sprite in it
+     */
+    record AtlasSpriteVisual(ResourceLocation atlas, ResourceLocation sprite) implements Visual {
+        AtlasSpriteVisual {
+            Objects.requireNonNull(atlas, "atlas");
+            Objects.requireNonNull(sprite, "sprite");
+        }
+
+        @Override
+        public Size size() {
+            return ITEM_SIZE;
+        }
+    }
+
+    /**
+     * The face of a given skin texture.
+     *
+     * @param texture the skin texture drawn
      * @param hat whether the hat layer is drawn
      */
-    record SkinFaceVisual(PlayerSkin skin, boolean hat) implements Visual {
+    record SkinFaceVisual(ResourceLocation texture, boolean hat) implements Visual {
         SkinFaceVisual {
-            Objects.requireNonNull(skin, "skin");
+            Objects.requireNonNull(texture, "texture");
         }
 
         @Override

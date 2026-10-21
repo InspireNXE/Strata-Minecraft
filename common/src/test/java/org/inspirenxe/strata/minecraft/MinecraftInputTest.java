@@ -16,12 +16,12 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.input.KeyEvent;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
 import org.inspirenxe.strata.api.input.ScrollKind;
 import org.junit.jupiter.api.Test;
+import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Field;
 import java.util.EnumMap;
@@ -38,7 +38,7 @@ import static org.inspirenxe.strata.api.input.Modifier.SHIFT;
 import static org.inspirenxe.strata.api.input.Modifier.SUPER;
 
 /**
- * Checks the Minecraft input mapping against the real 26.3 {@link InputConstants}, so a renumbering or a new key
+ * Checks the Minecraft input mapping against the real 1.20.1 {@link InputConstants}, so a renumbering or a new key
  * in a Minecraft update fails here instead of in game.
  */
 class MinecraftInputTest {
@@ -47,7 +47,7 @@ class MinecraftInputTest {
      */
     private static final Set<String> UNMAPPED = Set.of(
             "KEY_F13", "KEY_F14", "KEY_F15", "KEY_F16", "KEY_F17", "KEY_F18", "KEY_F19", "KEY_F20", "KEY_F21",
-            "KEY_F22", "KEY_F23", "KEY_F24", "KEY_NUMPADCOMMA"
+            "KEY_F22", "KEY_F23", "KEY_F24", "KEY_F25", "KEY_NUMPADCOMMA"
     );
 
     @Test
@@ -78,7 +78,7 @@ class MinecraftInputTest {
         assertEquals(Key.ENTER, MinecraftInput.key(InputConstants.KEY_RETURN));
         assertEquals(Key.KP_ENTER, MinecraftInput.key(InputConstants.KEY_NUMPADENTER));
         assertEquals(Key.ESCAPE, MinecraftInput.key(InputConstants.KEY_ESCAPE));
-        assertEquals(Key.LEFT_SUPER, MinecraftInput.key(InputConstants.KEY_LGUI));
+        assertEquals(Key.LEFT_SUPER, MinecraftInput.key(InputConstants.KEY_LWIN));
         assertEquals(Key.UNKNOWN, MinecraftInput.key(-1));
     }
 
@@ -87,18 +87,16 @@ class MinecraftInputTest {
         assertEquals(MouseButton.LEFT, MinecraftInput.button(InputConstants.MOUSE_BUTTON_LEFT));
         assertEquals(MouseButton.RIGHT, MinecraftInput.button(InputConstants.MOUSE_BUTTON_RIGHT));
         assertEquals(MouseButton.MIDDLE, MinecraftInput.button(InputConstants.MOUSE_BUTTON_MIDDLE));
-        assertEquals(MouseButton.BACK, MinecraftInput.button(InputConstants.MOUSE_BUTTON_4));
-        assertEquals(MouseButton.FORWARD, MinecraftInput.button(InputConstants.MOUSE_BUTTON_5));
-        assertEquals(MouseButton.UNKNOWN, MinecraftInput.button(InputConstants.MOUSE_BUTTON_8));
+        assertEquals(MouseButton.BACK, MinecraftInput.button(GLFW.GLFW_MOUSE_BUTTON_4));
+        assertEquals(MouseButton.FORWARD, MinecraftInput.button(GLFW.GLFW_MOUSE_BUTTON_5));
+        assertEquals(MouseButton.UNKNOWN, MinecraftInput.button(GLFW.GLFW_MOUSE_BUTTON_8));
     }
 
     @Test
     void modifiersMap() {
-        assertEquals(Modifiers.NONE, MinecraftInput.modifiers(new KeyEvent(InputConstants.KEY_A, 0, 0)));
-        assertEquals(Modifiers.of(SHIFT, CONTROL),
-                MinecraftInput.modifiers(new KeyEvent(InputConstants.KEY_A, 0, InputConstants.MOD_SHIFT | InputConstants.MOD_CONTROL)));
-        assertEquals(Modifiers.of(ALT, SUPER),
-                MinecraftInput.modifiers(new KeyEvent(InputConstants.KEY_A, 0, InputConstants.MOD_ALT | InputConstants.MOD_SUPER)));
+        assertEquals(Modifiers.NONE, MinecraftInput.modifiers(0));
+        assertEquals(Modifiers.of(SHIFT, CONTROL), MinecraftInput.modifiers(GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_CONTROL));
+        assertEquals(Modifiers.of(ALT, SUPER), MinecraftInput.modifiers(GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER));
     }
 
     @Test

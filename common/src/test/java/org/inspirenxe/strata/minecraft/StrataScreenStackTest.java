@@ -216,11 +216,11 @@ class StrataScreenStackTest {
     void titlesKeepTheirTextAndStyles() {
         final Component plain = MinecraftText.component(Text.of("Store"));
         assertEquals("Store", plain.getString());
-        assertTrue(plain.getSiblings().getFirst().getStyle().isEmpty());
+        assertTrue(plain.getSiblings().get(0).getStyle().isEmpty());
 
         final Component gold = MinecraftText.component(Text.of("Gold").color(0xFFFFAA00).bold());
-        assertEquals(0xFFAA00, gold.getSiblings().getFirst().getStyle().getColor().getValue());
-        assertTrue(gold.getSiblings().getFirst().getStyle().isBold());
+        assertEquals(0xFFAA00, gold.getSiblings().get(0).getStyle().getColor().getValue());
+        assertTrue(gold.getSiblings().get(0).getStyle().isBold());
     }
 
     /**

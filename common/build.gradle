@@ -1,13 +1,14 @@
 plugins {
     id 'strata-mc-java'
     id 'strata-mc-documented'
-    id 'net.neoforged.moddev'
+    id 'net.neoforged.moddev.legacyforge'
 }
 
-description = 'Minecraft 26.3 adapter for Strata, written against vanilla only.'
+description = 'Minecraft 1.20.1 adapter for Strata, written against vanilla only.'
 
-neoForge {
-    neoFormVersion = neo_form_version
+legacyForge {
+    // Vanilla with Mojang's names, through MCP's config for 1.20.1
+    mcpVersion = minecraft_version
     // The tests run against the real vanilla classes
     addModdingDependenciesTo(sourceSets.test)
 }

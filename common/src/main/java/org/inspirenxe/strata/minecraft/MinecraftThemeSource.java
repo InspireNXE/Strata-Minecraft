@@ -16,7 +16,7 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -63,11 +64,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>An id that is not a valid Minecraft identifier, or a file that cannot be read, gives no documents.</li>
  * </ul>
  *
- * <p>A pack comes from a mod when it has known pack info whose namespace is not {@code minecraft}. NeoForge gives
- * each mod's pack the namespace {@code neoforge} and Fabric API gives it {@code vanilla}, while the vanilla pack and
- * its built-in packs use {@code minecraft}, and packs from the resource pack folder, a server or a world have
- * none. A pack's source cannot tell them apart: NeoForge marks mods' packs as {@code PackSource.DEFAULT}, the same
- * source the resource pack folder uses.</p>
+ * <p>Minecraft 1.20.1 has no known pack info, so a pack comes from a mod when it is built in and is not one of
+ * vanilla's own: {@code vanilla}, {@code programmer_art} and {@code high_contrast}. Packs from the resource pack
+ * folder, a server or a world are not built in. Which of Forge's and Fabric API's mod packs report themselves as
+ * built in has not been checked in a running game.</p>
  */
 public final class MinecraftThemeSource implements ThemeSource, ResourceManagerReloadListener {
     /**
@@ -182,18 +182,24 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
     }
 
     /**
+     * The ids of vanilla's built-in resource packs in 1.20.1.
+     */
+    private static final Set<String> VANILLA_PACKS = Set.of("vanilla", "programmer_art", "high_contrast");
+
+    /**
      * Returns whether a resource comes from a mod's own resources rather than from the player, a server or a world,
-     * or from vanilla.
+     * or from vanilla. Minecraft 1.20.1 has no known pack info, so this goes by the pack: mods' packs are built in,
+     * and the only built-in packs that are not mods' are vanilla's own.
      *
      * @param resource the resource
-     * @return true if its pack has known pack info outside the {@code minecraft} namespace
+     * @return true if its pack is built in and not one of vanilla's
      */
     static boolean fromMod(final Resource resource) {
-        return resource.knownPackInfo().filter(pack -> !pack.isVanilla()).isPresent();
+        return resource.isBuiltin() && !VANILLA_PACKS.contains(resource.sourcePackId());
     }
 
     private List<ThemeDocument> read(final ThemeId id) {
-        final Identifier location = Identifier.tryBuild(id.namespace(), "strata/themes/" + id.path() + ".json");
+        final ResourceLocation location = ResourceLocation.tryBuild(id.namespace(), "strata/themes/" + id.path() + ".json");
         if (location == null) {
             return List.of();
         }
@@ -202,8 +208,11 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
         for (final Resource resource : this.minecraft.getResourceManager().getResourceStack(location)) {
             try {
                 final String pack = resource.sourcePackId();
-                final ThemeDocument document = new ThemeDocument(pack + "/" + location, resource.readAllAsString(),
-                        pack);
+                final String text;
+                try (InputStream in = resource.open()) {
+                    text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                }
+                final ThemeDocument document = new ThemeDocument(pack + "/" + location, text, pack);
                 (MinecraftThemeSource.fromMod(resource) ? mods : players).add(document);
             } catch (final IOException ignored) {
                 // An unreadable file is left out, as the ThemeSource contract asks

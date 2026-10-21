@@ -16,9 +16,8 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackResources;
-import net.minecraft.server.packs.repository.KnownPack;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.inspirenxe.strata.api.control.button.Button;
@@ -54,26 +53,22 @@ import static org.mockito.Mockito.when;
  * Theme files read from the resource manager, and the vanilla theme they restyle.
  */
 class MinecraftThemeSourceTest {
-    private static final Identifier VANILLA_FILE = Identifier.fromNamespaceAndPath("minecraft", "strata/themes/vanilla.json");
+    private static final ResourceLocation VANILLA_FILE = new ResourceLocation("minecraft", "strata/themes/vanilla.json");
 
     private ResourceManager resources;
     private MinecraftThemeSource source;
 
     private static Resource resource(final String pack, final String json) {
-        return resource(pack, Optional.empty(), json);
+        return resource(pack, false, json);
     }
 
     /**
-     * A resource from a pack with known pack info, as the game, NeoForge and Fabric API give their own packs.
+     * A resource from a pack that is built in or not, as the game, Forge and Fabric API mark their own packs.
      */
-    private static Resource resource(final String pack, final String namespace, final String json) {
-        return resource(pack, Optional.of(new KnownPack(namespace, pack, "1")), json);
-    }
-
-    private static Resource resource(final String pack, final Optional<KnownPack> known, final String json) {
+    private static Resource resource(final String pack, final boolean builtIn, final String json) {
         final PackResources packResources = mock(PackResources.class);
         when(packResources.packId()).thenReturn(pack);
-        when(packResources.knownPackInfo()).thenReturn(known);
+        when(packResources.isBuiltin()).thenReturn(builtIn);
         return new Resource(packResources, () -> new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -95,8 +90,8 @@ class MinecraftThemeSourceTest {
         assertTrue(this.source.base(MinecraftThemeSource.VANILLA).isEmpty());
         final List<ThemeDocument> bases = this.source.bases(MinecraftThemeSource.VANILLA);
         assertEquals(1, bases.size());
-        assertEquals(MinecraftThemeSource.VANILLA_LAYER, bases.getFirst().layer());
-        assertTrue(bases.getFirst().content().contains("\"parent\": \"strata:flat\""));
+        assertEquals(MinecraftThemeSource.VANILLA_LAYER, bases.get(0).layer());
+        assertTrue(bases.get(0).content().contains("\"parent\": \"strata:flat\""));
         assertTrue(this.source.bases(ThemeId.of("mymod", "shop")).isEmpty());
     }
 
@@ -112,31 +107,31 @@ class MinecraftThemeSourceTest {
 
     @Test
     void modsFilesComeAfterThePlayersPacks() {
-        // The game's order, with a NeoForge mod pack below a player's pack and a Fabric one above a server pack
+        // The game's order, with a Forge mod pack below a player's pack and a Fabric one above a server pack
         final List<Resource> stack = List.of(
-                resource("mod/alpha", "neoforge", "alpha"),
+                resource("mod:alpha", true, "alpha"),
                 resource("file/fancy_pack", "fancy"),
-                resource("high_contrast", "minecraft", "contrast"),
-                resource("beta", "vanilla", "beta"),
+                resource("high_contrast", true, "contrast"),
+                resource("beta", true, "beta"),
                 resource("server/0000002A/pack", "server"));
         when(this.resources.getResourceStack(VANILLA_FILE)).thenReturn(stack);
         final List<ThemeDocument> documents = this.source.documents(MinecraftThemeSource.VANILLA);
         assertEquals(List.of("fancy", "contrast", "server", "alpha", "beta"),
                 documents.stream().map(ThemeDocument::content).toList());
-        assertEquals(List.of("file/fancy_pack", "high_contrast", "server/0000002A/pack", "mod/alpha", "beta"),
+        assertEquals(List.of("file/fancy_pack", "high_contrast", "server/0000002A/pack", "mod:alpha", "beta"),
                 documents.stream().map(ThemeDocument::layer).toList());
     }
 
     @Test
     void aModsKeysBeatThePlayersPacks() {
         final List<Resource> stack = List.of(
-                resource("mod/alpha", "neoforge", "{ \"paints\": { \"button.normal\": \"#000001\" } }"),
+                resource("mod:alpha", true, "{ \"paints\": { \"button.normal\": \"#000001\" } }"),
                 resource("file/fancy_pack", "{ \"paints\": { \"button.normal\": \"#000002\","
                         + " \"button.hovered\": \"#000002\" } }"));
         when(this.resources.getResourceStack(VANILLA_FILE)).thenReturn(stack);
         final Theme theme = this.resolveVanilla();
         assertEquals(Paint.solid(0xFF000001), theme.paint(Button.STYLE_NORMAL).orElseThrow());
-        assertEquals(Optional.of("mod/alpha"), theme.layer(Button.STYLE_NORMAL));
+        assertEquals(Optional.of("mod:alpha"), theme.layer(Button.STYLE_NORMAL));
         assertEquals(Paint.solid(0xFF000002), theme.paint(Button.STYLE_HOVERED).orElseThrow());
         assertEquals(Optional.of("file/fancy_pack"), theme.layer(Button.STYLE_HOVERED));
     }

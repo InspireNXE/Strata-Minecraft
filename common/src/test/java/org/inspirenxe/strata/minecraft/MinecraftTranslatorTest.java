@@ -27,14 +27,14 @@ class MinecraftTranslatorTest {
     void languageCodesBecomeLocales() {
         assertEquals(Locale.US, MinecraftTranslator.localeOf("en_us"));
         assertEquals(Locale.GERMANY, MinecraftTranslator.localeOf("de_de"));
-        assertEquals(Locale.of("pt", "BR"), MinecraftTranslator.localeOf("pt_br"));
+        assertEquals(new Locale("pt", "BR"), MinecraftTranslator.localeOf("pt_br"));
         assertEquals(Locale.JAPAN, MinecraftTranslator.localeOf("ja_jp"));
     }
 
     @Test
     void languagesTheJdkLacksFallBack() {
         assertEquals(Locale.ENGLISH, MinecraftTranslator.localeOf("enws"));
-        assertEquals(Locale.of("es"), MinecraftTranslator.localeOf("esan"));
+        assertEquals(new Locale("es"), MinecraftTranslator.localeOf("esan"));
         assertEquals(Locale.US, MinecraftTranslator.localeOf("lol_us"));
         assertEquals(Locale.ENGLISH, MinecraftTranslator.localeOf("tlh_aa"));
     }

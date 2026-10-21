@@ -15,7 +15,7 @@
  */
 package org.inspirenxe.strata.minecraft;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The player's settings file must force vanilla slot drawing where it says, and never fail a screen.
  */
 class StrataClientConfigTest {
-    private static final Identifier GRINDER = Identifier.fromNamespaceAndPath("examplemod", "grinder");
+    private static final ResourceLocation GRINDER = new ResourceLocation("examplemod", "grinder");
 
     @Test
     void forcingEveryScreenOverridesStrataMode() {
@@ -48,7 +48,7 @@ class StrataClientConfigTest {
 
         assertEquals(Set.of(GRINDER), config.forceVanillaSlotsFor(), "invalid entries are skipped");
         assertEquals(SlotRendering.VANILLA, config.apply(SlotRendering.STRATA, GRINDER));
-        assertEquals(SlotRendering.STRATA, config.apply(SlotRendering.STRATA, Identifier.withDefaultNamespace("generic_9x3")));
+        assertEquals(SlotRendering.STRATA, config.apply(SlotRendering.STRATA, new ResourceLocation("generic_9x3")));
         assertEquals(SlotRendering.STRATA, config.apply(SlotRendering.STRATA, null));
     }
 

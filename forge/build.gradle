@@ -1,48 +1,32 @@
 plugins {
     id 'strata-mc-loader'
-    // SpongeAPI stays compileOnly: the jar runs with or without SpongeForge
-    id 'strata-mc-sponge'
-    id 'net.minecraftforge.gradle'
-    // ForgeGradle 7 does not nest jars itself
-    id 'net.minecraftforge.jarjar'
+    id 'net.neoforged.moddev.legacyforge'
 }
 
-repositories {
-    minecraft.mavenizer(it)
-    maven fg.forgeMaven
-    maven fg.minecraftLibsMaven
-}
-
-jarJar.register()
-
-// The jarJar task repacks the mod jar with Strata nested, and its jar is the one players install, so it takes the
-// plain name. It already holds the license files every jar gets.
-tasks.named('jar', Jar) {
-    archiveClassifier = 'slim'
-}
-tasks.named('jarJar', Jar) {
-    archiveClassifier = ''
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-dependencies {
-    implementation(minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}"))
-    // Strata ships nested in the mod jar
-    ['api', 'spi', 'core'].each { name ->
-        implementation(jarJar("org.inspirenxe:strata-${name}:${strata_version}")) {
-            transitive = false
-            jarJar.configure(it) {
-                version = strata_version
-            }
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+    // The tests read the mod annotation, which needs Forge on the test classpath
+    addModdingDependenciesTo(sourceSets.test)
+    runs {
+        configureEach {
+            ideName = "Forge ${it.name.capitalize()} (${project.path})"
+        }
+        client {
+            client()
+            gameDirectory = this.mkdir(this.file('runs/client'))
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
         }
     }
 }
 
-minecraft {
-    runs {
-        register('client') {
-            workingDir = layout.projectDirectory.dir('runs/client')
-        }
+dependencies {
+    // Strata ships nested in the mod jar
+    ['api', 'spi', 'core'].each { name ->
+        jarJar(implementation("org.inspirenxe:strata-${name}:${strata_version}"))
     }
 }
 

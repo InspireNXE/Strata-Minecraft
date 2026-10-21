@@ -122,7 +122,7 @@ final class MinecraftTranslator implements Translator {
             language = "en";
         }
         final String region = parts.length > 1 ? parts[1].toUpperCase(Locale.ROOT) : "";
-        return Known.COUNTRIES.contains(region) ? Locale.of(language, region) : Locale.of(language);
+        return Known.COUNTRIES.contains(region) ? new Locale(language, region) : new Locale(language);
     }
 
     /**
