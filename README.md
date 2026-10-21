@@ -35,7 +35,6 @@ The adapter shows it in a vanilla `Screen` in the vanilla theme. Input Strata do
 | `common` | The adapter, written against vanilla classes only. |
 | `sponge` | The code that needs SpongeAPI, which backs Strata's causes with Sponge's. |
 | `neoforge`, `forge`, `fabric`, `spongevanilla` | The mod and plugin jars, named `strata-minecraft-<module>` in the group `org.inspirenxe`. |
-| `docs` | The code the documentation shows, compiled so it stays correct. |
 
 ## Building
 
