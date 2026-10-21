@@ -17,6 +17,7 @@ package org.inspirenxe.strata.minecraft.control;
 
 import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.component.HasTooltip;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.event.input.PointerEvent;
@@ -50,9 +51,11 @@ import java.util.function.Function;
  *
  * <p>Each time the pointer enters it, and when the stack changes while the pointer is over it, the display sets its
  * {@linkplain #setTooltip tooltip} to what the {@linkplain #setTooltipFunction tooltip function} returns for the
- * stack. The default function is {@link MinecraftTooltips#item(ItemStack)}, vanilla's own lines, so the tooltip
- * follows the advanced tooltips setting (F3+H) at the time the pointer arrives. A tooltip with no lines counts as
- * none. Set the function to {@code null} to manage the tooltip yourself.</p>
+ * stack. The default function asks the stack's {@linkplain org.inspirenxe.strata.api.appearance.Appearance
+ * appearance}, the same place a list row's tooltip comes from, so an appearance a mod registers for item stacks
+ * changes both. Strata-Minecraft's own appearance gives vanilla's lines, {@link MinecraftTooltips#item(ItemStack)},
+ * so the tooltip follows the advanced tooltips setting (F3+H) at the time the pointer arrives. A tooltip with no
+ * lines counts as none. Set the function to {@code null} to manage the tooltip yourself.</p>
  *
  * <p>The display is not focusable, reads no theme keys and has no default behavior for input, so clicks pass
  * through to its ancestors. It has no events of its own: only code changes it. Use it on the render thread.</p>
@@ -86,7 +89,7 @@ public final class ItemDisplay extends CustomComponent<ItemDisplay> implements H
         this.decorations = ItemDecorations.ALL;
         this.visual = MinecraftVisuals.item(this.stack, this.decorations);
         this.tint = 0xFFFFFFFF;
-        this.tooltipFunction = MinecraftTooltips::item;
+        this.tooltipFunction = ItemDisplay::appearanceTooltip;
     }
 
     /**
@@ -158,7 +161,8 @@ public final class ItemDisplay extends CustomComponent<ItemDisplay> implements H
     /**
      * Returns the function that makes the tooltip.
      *
-     * @return the function, or {@code null} when the display leaves its tooltip alone
+     * @return the function, or {@code null} when the display leaves its tooltip alone; by default one that asks the
+     *         stack's appearance
      */
     public Function<? super ItemStack, ? extends Tooltip> tooltipFunction() {
         return this.tooltipFunction;
@@ -212,6 +216,10 @@ public final class ItemDisplay extends CustomComponent<ItemDisplay> implements H
     @Override
     protected Object snapshotState() {
         return new State(this.stack.copy(), this.decorations, this.tint);
+    }
+
+    private static Tooltip appearanceTooltip(final ItemStack stack) {
+        return Strata.appearances().tooltipOf(stack).orElse(null);
     }
 
     private void refreshTooltip() {

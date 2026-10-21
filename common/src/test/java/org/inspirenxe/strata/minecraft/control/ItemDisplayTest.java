@@ -17,7 +17,10 @@ package org.inspirenxe.strata.minecraft.control;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.event.Subscription;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.theme.Themes;
@@ -152,6 +155,22 @@ class ItemDisplayTest {
         display.setStack(ItemStack.EMPTY);
         assertNull(display.tooltip(), "an empty stack has no tooltip");
         assertEquals(2, this.asked.size(), "the function never sees an empty stack");
+    }
+
+    @Test
+    void theDefaultTooltipComesFromTheStacksAppearance() {
+        final Subscription registration = Strata.appearances().register(ItemStack.class, Appearance.<ItemStack>builder()
+                .tooltip(stack -> Tooltip.text("Appearance of " + stack.getCount()))
+                .build());
+        try {
+            final ItemDisplay display = new ItemDisplay(this.host.factory(), new ItemStack(Items.DIAMOND, 3));
+            this.host.open(ui -> ui.absolutePanel().add(display, 10f, 10f));
+            this.host.layout();
+            this.host.pointerMoved(15f, 15f, Modifiers.NONE);
+            assertEquals(Tooltip.text("Appearance of 3"), display.tooltip());
+        } finally {
+            registration.unsubscribe();
+        }
     }
 
     @Test
