@@ -38,6 +38,10 @@ import java.util.Objects;
  * <pre>{@code
  * Image face = factory.image(MinecraftVisuals.playerFace(player.getGameProfile())).setImageSize(16, 16);
  * }</pre>
+ *
+ * <p>Every visual made here is a snapshot in the sense of Strata's {@link Visual} contract. An item visual copies the
+ * stack, so make a new one to show a change. A face visual keeps the profile or skin it was given, and the canvas
+ * looks the skin texture up on each draw, so a face fills in by itself once its skin has loaded.</p>
  */
 public final class MinecraftVisuals {
     /**
