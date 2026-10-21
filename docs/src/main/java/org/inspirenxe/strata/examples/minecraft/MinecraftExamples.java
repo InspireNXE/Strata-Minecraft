@@ -15,6 +15,7 @@
  */
 package org.inspirenxe.strata.examples.minecraft;
 
+import com.mojang.authlib.properties.PropertyMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -53,9 +54,10 @@ import org.inspirenxe.strata.minecraft.control.ItemDisplay;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Showing Strata screens in Minecraft 26.3. This code is the same on NeoForge and Fabric.
+ * Showing Strata screens in Minecraft 1.21.1. This code is the same on NeoForge, Forge and Fabric.
  */
 public final class MinecraftExamples {
 
@@ -109,7 +111,7 @@ public final class MinecraftExamples {
     static void openLive() {
         // --8<-- [start:live]
         // A subclass is a vanilla screen like any other; open it on the client thread
-        Minecraft.getInstance().gui.setScreen(new LiveScreen(Component.literal("Settings"), new SettingsScreen()));
+        Minecraft.getInstance().setScreen(new LiveScreen(Component.literal("Settings"), new SettingsScreen()));
         // --8<-- [end:live]
     }
 
@@ -147,7 +149,7 @@ public final class MinecraftExamples {
         @Override
         public void onClose() {
             // Escape and handle.close() both end up here
-            this.minecraft.gui.setScreen(this.parent);
+            this.minecraft.setScreen(this.parent);
         }
     }
     // --8<-- [end:parent]
@@ -221,7 +223,7 @@ public final class MinecraftExamples {
         final Image face = factory.image(MinecraftVisuals.playerFace(player.getGameProfile())).setImageSize(16f, 16f);
 
         // Only a name: the default skin shows until the real one has loaded
-        final Image seller = factory.image(MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")))
+        final Image seller = factory.image(MinecraftVisuals.playerFace(new ResolvableProfile(Optional.of("Ana"), Optional.empty(), new PropertyMap())))
                 .setImageSize(12f, 12f);
         // --8<-- [end:face]
         return seller;

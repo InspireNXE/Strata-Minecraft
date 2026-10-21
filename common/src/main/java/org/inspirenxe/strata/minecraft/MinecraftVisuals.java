@@ -16,7 +16,8 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.inspirenxe.strata.api.geometry.Size;
@@ -86,14 +87,14 @@ public final class MinecraftVisuals {
      * @see #playerFace(ResolvableProfile, boolean)
      */
     public static Visual playerFace(final GameProfile profile) {
-        return playerFace(ResolvableProfile.createResolved(profile), true);
+        return playerFace(new ResolvableProfile(profile), true);
     }
 
     /**
      * Returns a visual of a player's face with the hat layer.
      *
-     * @param profile the profile, which may name only the player, as {@code ResolvableProfile.createUnresolved(name)}
-     *                does
+     * @param profile the profile, which may name only the player, as
+     *                {@code new ResolvableProfile(Optional.of(name), Optional.empty(), new PropertyMap())} does
      * @return the visual, 8 by 8
      * @see #playerFace(ResolvableProfile, boolean)
      */
@@ -103,13 +104,13 @@ public final class MinecraftVisuals {
 
     /**
      * Returns a visual of a player's face from a profile whose skin the game looks up. The canvas asks vanilla's
-     * player skin cache for the skin every time it draws, so the face shows the built-in skin vanilla picks for the
-     * profile's id until the real one has loaded, and the real one after, as vanilla's player face widget does. A
-     * profile that holds only a name or an id is looked up in the background, in the server's player list first
-     * and then through Mojang's services.
+     * skin manager for the skin every time it draws, so the face shows the built-in skin vanilla picks for the
+     * profile's id until the real one has loaded, and the real one after, as vanilla's player list does. A profile
+     * that holds only a name or an id is looked up in the background through vanilla's profile cache, as player
+     * heads are.
      *
-     * @param profile the profile, which may name only the player, as {@code ResolvableProfile.createUnresolved(name)}
-     *                does
+     * @param profile the profile, which may name only the player, as
+     *                {@code new ResolvableProfile(Optional.of(name), Optional.empty(), new PropertyMap())} does
      * @param hat whether to draw the skin's hat layer over the face
      * @return the visual, 8 by 8
      */
@@ -130,7 +131,7 @@ public final class MinecraftVisuals {
     /**
      * Returns a visual of the face of a skin the caller already has, such as one of {@code DefaultPlayerSkin}'s.
      *
-     * @param skin the skin; its body texture is drawn
+     * @param skin the skin; its texture is drawn
      * @param hat whether to draw the skin's hat layer over the face
      * @return the visual, 8 by 8
      */
@@ -217,6 +218,24 @@ public final class MinecraftVisuals {
         @Override
         public Size size() {
             return PLAYER_FACE_SIZE;
+        }
+    }
+
+    /**
+     * A sprite of a texture atlas other than the GUI's, such as the block atlas sprite an empty slot shows.
+     *
+     * @param atlas the atlas texture
+     * @param sprite the sprite in it
+     */
+    record AtlasSpriteVisual(ResourceLocation atlas, ResourceLocation sprite) implements Visual {
+        AtlasSpriteVisual {
+            Objects.requireNonNull(atlas, "atlas");
+            Objects.requireNonNull(sprite, "sprite");
+        }
+
+        @Override
+        public Size size() {
+            return ITEM_SIZE;
         }
     }
 

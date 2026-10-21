@@ -48,7 +48,7 @@ class SpongeCauseStackTest {
 
     @Test
     void framesOpenAndCloseSpongesFrames() {
-        try (CauseFrame _ = this.stack.pushFrame().push("button")) {
+        try (CauseFrame button = this.stack.pushFrame().push("button")) {
             assertEquals(1, this.sponge.frames.size(), "a Strata frame is a Sponge frame");
             assertEquals(List.of("button", GAME), this.sponge.currentCause().all(), "pushes go on Sponge's chain");
         }
@@ -58,9 +58,9 @@ class SpongeCauseStackTest {
 
     @Test
     void theChainIsSpongesAndTheContextStratas() {
-        try (CauseFrame _ = this.stack.pushFrame().put(CauseKeys.ORIGIN, new Origin.User("Ana"))
+        try (CauseFrame user = this.stack.pushFrame().put(CauseKeys.ORIGIN, new Origin.User("Ana"))
                 .put(CauseKeys.DEVICE, Device.MOUSE)) {
-            try (CauseFrame _ = this.stack.pushFrame().push("group")) {
+            try (CauseFrame group = this.stack.pushFrame().push("group")) {
                 final Cause cause = this.stack.current();
                 assertEquals(Optional.of("group"), cause.root(), "the direct cause, as Sponge orders it");
                 assertEquals(List.of("group", GAME), cause.all());
@@ -98,7 +98,7 @@ class SpongeCauseStackTest {
     @Test
     void withoutSpongesClientOnlyTheContextIsKept() {
         final SpongeCauseStack early = new SpongeCauseStack(Optional::empty);
-        try (CauseFrame _ = early.pushFrame().push("ignored").put(CauseKeys.ORIGIN, new Origin.User("Ana"))) {
+        try (CauseFrame user = early.pushFrame().push("ignored").put(CauseKeys.ORIGIN, new Origin.User("Ana"))) {
             assertEquals(new Origin.User("Ana"), early.current().origin());
             assertTrue(early.current().all().isEmpty());
         }

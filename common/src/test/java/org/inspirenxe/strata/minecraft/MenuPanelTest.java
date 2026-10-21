@@ -15,10 +15,12 @@
  */
 package org.inspirenxe.strata.minecraft;
 
-import net.minecraft.resources.Identifier;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -35,6 +37,7 @@ import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Themes;
 import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.AtlasSpriteVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 import org.inspirenxe.strata.spi.Canvas;
@@ -67,7 +70,7 @@ import static org.mockito.Mockito.verify;
  */
 class MenuPanelTest {
     private static final int WHITE = 0xFFFFFFFF;
-    private static final SpriteId HELMET = SpriteId.of("minecraft", "container/slot/helmet");
+    private static final Visual HELMET = new AtlasSpriteVisual(InventoryMenu.BLOCK_ATLAS, InventoryMenu.EMPTY_ARMOR_SLOT_HELMET);
 
     private ScreenHost host;
     private TestMenu menu;
@@ -96,8 +99,8 @@ class MenuPanelTest {
         this.diamonds = this.menu.add(new Slot(container, 0, 8, 4));
         this.helmet = this.menu.add(new Slot(container, 1, 26, 4) {
             @Override
-            public Identifier getNoItemIcon() {
-                return Identifier.withDefaultNamespace("container/slot/helmet");
+            public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+                return Pair.of(InventoryMenu.BLOCK_ATLAS, InventoryMenu.EMPTY_ARMOR_SLOT_HELMET);
             }
         });
         this.inactive = this.menu.add(new Slot(container, 2, 8, 22) {
@@ -150,23 +153,39 @@ class MenuPanelTest {
         this.render();
 
         verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 3), ItemDecorations.ALL, false, 168), new Rect(18f, 24f, 16f, 16f), WHITE);
-        verify(this.canvas).sprite(HELMET, new Rect(36f, 24f, 16f, 16f), WHITE);
+        verify(this.canvas).visual(HELMET, new Rect(36f, 24f, 16f, 16f), WHITE);
         verify(this.canvas).visual(item(new ItemStack(Items.GOLD_INGOT), ItemDecorations.ALL, true, 906), new Rect(36f, 42f, 16f, 16f), WHITE);
         verify(this.canvas, never()).visual(any(Visual.class), eq(new Rect(18f, 42f, 16f, 16f)), anyInt());
         assertEquals(0, this.owner.vanillaDraws);
     }
 
     @Test
-    void theHoveredSlotIsHighlightedBehindAndInFrontOfTheItems() {
+    void theHoveredSlotIsHighlightedInFrontOfItsItemAsVanillaDoes() {
         this.owner.hovered = this.diamonds;
 
         this.render();
 
-        final Rect highlight = new Rect(14f, 20f, 24f, 24f);
+        final Rect item = new Rect(18f, 24f, 16f, 16f);
         final InOrder order = inOrder(this.canvas);
-        order.verify(this.canvas).sprite(SpriteId.of("minecraft", "container/slot_highlight_back"), highlight, WHITE);
-        order.verify(this.canvas).visual(any(Visual.class), eq(new Rect(18f, 24f, 16f, 16f)), eq(WHITE));
-        order.verify(this.canvas).sprite(SpriteId.of("minecraft", "container/slot_highlight_front"), highlight, WHITE);
+        order.verify(this.canvas).visual(any(Visual.class), eq(item), eq(WHITE));
+        order.verify(this.canvas).fill(item, 0x80FFFFFF);
+    }
+
+    @Test
+    void theThemeCanHighlightBehindTheItemToo() {
+        this.owner.hovered = this.diamonds;
+        this.host.setTheme(Themes.flat().toBuilder()
+                .paint(MenuPanel.STYLE_HIGHLIGHT_BACK, Paint.solid(0xFF445566))
+                .paint(MenuPanel.STYLE_HIGHLIGHT_FRONT, Paint.NONE)
+                .build());
+
+        this.render();
+
+        final Rect item = new Rect(18f, 24f, 16f, 16f);
+        final InOrder order = inOrder(this.canvas);
+        order.verify(this.canvas).fill(item, 0xFF445566);
+        order.verify(this.canvas).visual(any(Visual.class), eq(item), eq(WHITE));
+        verify(this.canvas, never()).fill(item, 0x80FFFFFF);
     }
 
     @Test
@@ -182,7 +201,7 @@ class MenuPanelTest {
         verify(this.canvas).fill(new Rect(18f, 24f, 16f, 16f), 0x80FFFFFF);
         verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 8), ItemDecorations.ALL, false, 168), new Rect(18f, 24f, 16f, 16f), WHITE);
         verify(this.canvas).visual(item(new ItemStack(Items.DIAMOND, 5), ItemDecorations.ALL, false, 186), new Rect(36f, 24f, 16f, 16f), WHITE);
-        verify(this.canvas, never()).sprite(eq(HELMET), any(Rect.class), anyInt());
+        verify(this.canvas, never()).visual(eq(HELMET), any(Rect.class), anyInt());
     }
 
     @Test
@@ -231,15 +250,15 @@ class MenuPanelTest {
         final ItemStack carried = new ItemStack(Items.DIAMOND, 10);
 
         // Five each; the slot with three takes five more
-        assertEquals(0, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 0));
+        assertEquals(0, StrataContainerScreen.quickCraftRemainder(carried, Set.of(this.diamonds, this.helmet), 0));
         // One each
-        assertEquals(8, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 1));
+        assertEquals(8, StrataContainerScreen.quickCraftRemainder(carried, Set.of(this.diamonds, this.helmet), 1));
         // Cloning always leaves a full stack
-        assertEquals(64, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 2));
+        assertEquals(64, StrataContainerScreen.quickCraftRemainder(carried, Set.of(this.diamonds, this.helmet), 2));
         // A full slot takes nothing
         this.container.setItem(0, new ItemStack(Items.DIAMOND, 64));
-        assertEquals(5, StrataContainerScreen.quickCraftRemainder(carried, List.of(this.diamonds, this.helmet), 0));
-        assertEquals(0, StrataContainerScreen.quickCraftRemainder(ItemStack.EMPTY, List.of(this.diamonds), 0));
+        assertEquals(5, StrataContainerScreen.quickCraftRemainder(carried, Set.of(this.diamonds, this.helmet), 0));
+        assertEquals(0, StrataContainerScreen.quickCraftRemainder(ItemStack.EMPTY, Set.of(this.diamonds), 0));
     }
 
     @Test

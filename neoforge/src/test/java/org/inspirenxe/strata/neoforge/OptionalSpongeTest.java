@@ -59,7 +59,7 @@ class OptionalSpongeTest {
             toml = new String(in.readAllBytes(), StandardCharsets.UTF_8).replace(" ", "").replace("\r", "");
         }
         assertTrue(toml.contains("modId=\"" + StrataNeoForge.SPONGE_API + "\"\ntype=\"optional\"\n"
-                + "versionRange=\"[21.0.0-SNAPSHOT,22)\"\nordering=\"AFTER\""),
-                "SpongeAPI is optional, version 21, and constructed before Strata when present");
+                + "versionRange=\"[12.0.0,13)\"\nordering=\"AFTER\""),
+                "SpongeAPI is optional, version 12, and constructed before Strata when present");
     }
 }

@@ -16,9 +16,6 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.SharedConstants;
-import net.minecraft.core.component.DataComponentInitializers;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.Bootstrap;
 
 /**
@@ -31,8 +28,8 @@ public final class VanillaBootstrap {
     }
 
     /**
-     * Runs vanilla's {@code Bootstrap} and binds the items' default components, which a world load does in game.
-     * Later calls do nothing.
+     * Runs vanilla's {@code Bootstrap}, which registers the items with their default components. Later calls do
+     * nothing.
      */
     public static synchronized void run() {
         if (done) {
@@ -40,8 +37,6 @@ public final class VanillaBootstrap {
         }
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(VanillaRegistries.createWorldLookup())
-                .forEach(DataComponentInitializers.PendingComponents::apply);
         done = true;
     }
 }

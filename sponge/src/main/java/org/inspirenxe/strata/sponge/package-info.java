@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 /**
- * The parts of Strata-Minecraft that need SpongeAPI, compiled into the SpongeVanilla plugin and into the NeoForge mod.
+ * The parts of Strata-Minecraft that need SpongeAPI, compiled into the NeoForge and Forge mods.
  *
- * <p>On NeoForge, SpongeAPI is there only when SpongeNeo is installed. The NeoForge mod checks for it before it calls
- * anything in this package, so classes here may name Sponge types freely. Nothing else in the NeoForge jar may.</p>
+ * <p>SpongeAPI is there only when SpongeNeo or SpongeForge is installed. The mods check for it before they call
+ * anything in this package, so classes here may name Sponge types freely. Nothing else in their jars may.</p>
  */
 package org.inspirenxe.strata.sponge;

@@ -16,19 +16,20 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.Minecraft;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.Modifier;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
 import org.inspirenxe.strata.api.input.ScrollKind;
+import org.lwjgl.glfw.GLFW;
 
 /**
- * Maps Minecraft 26.3 input to Strata's input types.
+ * Maps Minecraft 1.21.1 input to Strata's input types.
  *
- * <p>Since 26.3 Minecraft's key values are SDL scancodes, which name physical key positions, so every mapping goes
- * through the {@link InputConstants} names and never through raw numbers. Scancodes Strata has no key for (F13 to
- * F24, the keypad comma) map to {@link Key#UNKNOWN}.</p>
+ * <p>Minecraft 1.21.1 passes GLFW key codes, mouse buttons and modifier bits as plain numbers. Every mapping goes
+ * through the {@link InputConstants} names, or GLFW's where vanilla has none, and never through raw numbers. Keys
+ * Strata has no key for (F13 to F25, the other keypad keys) map to {@link Key#UNKNOWN}.</p>
  *
  * <p>On macOS Minecraft treats Command as the edit-shortcut modifier. Strata reports Command as
  * {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}, so Strata's text box shortcuts use Control there
@@ -40,26 +41,50 @@ public final class MinecraftInput {
     }
 
     /**
-     * Reads the modifiers of a Minecraft input event.
+     * Reads the modifier bits Minecraft passes with a key.
      *
-     * @param input a key or mouse event
+     * @param bits GLFW's modifier bits, the last argument of {@code keyPressed} and {@code keyReleased}
      * @return the held modifiers
      */
-    public static Modifiers modifiers(final InputWithModifiers input) {
+    public static Modifiers modifiers(final int bits) {
         Modifiers modifiers = Modifiers.NONE;
-        if (input.hasShiftDown()) {
+        if ((bits & GLFW.GLFW_MOD_SHIFT) != 0) {
             modifiers = modifiers.with(Modifier.SHIFT);
         }
-        if (input.hasControlDown()) {
+        if ((bits & GLFW.GLFW_MOD_CONTROL) != 0) {
             modifiers = modifiers.with(Modifier.CONTROL);
         }
-        if (input.hasAltDown()) {
+        if ((bits & GLFW.GLFW_MOD_ALT) != 0) {
             modifiers = modifiers.with(Modifier.ALT);
         }
-        if ((input.modifiers() & InputConstants.MOD_SUPER) != 0) {
+        if ((bits & GLFW.GLFW_MOD_SUPER) != 0) {
             modifiers = modifiers.with(Modifier.SUPER);
         }
         return modifiers;
+    }
+
+    /**
+     * Reads the modifiers held now from the game's window, for mouse input, which Minecraft 1.21.1 passes without
+     * them.
+     *
+     * @return the held modifiers
+     */
+    public static Modifiers heldModifiers() {
+        final long window = Minecraft.getInstance().getWindow().getWindow();
+        int bits = 0;
+        if (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT)) {
+            bits |= GLFW.GLFW_MOD_SHIFT;
+        }
+        if (InputConstants.isKeyDown(window, InputConstants.KEY_LCONTROL) || InputConstants.isKeyDown(window, InputConstants.KEY_RCONTROL)) {
+            bits |= GLFW.GLFW_MOD_CONTROL;
+        }
+        if (InputConstants.isKeyDown(window, InputConstants.KEY_LALT) || InputConstants.isKeyDown(window, InputConstants.KEY_RALT)) {
+            bits |= GLFW.GLFW_MOD_ALT;
+        }
+        if (InputConstants.isKeyDown(window, InputConstants.KEY_LWIN) || InputConstants.isKeyDown(window, InputConstants.KEY_RWIN)) {
+            bits |= GLFW.GLFW_MOD_SUPER;
+        }
+        return modifiers(bits);
     }
 
     /**
@@ -96,20 +121,20 @@ public final class MinecraftInput {
             case InputConstants.MOUSE_BUTTON_LEFT -> MouseButton.LEFT;
             case InputConstants.MOUSE_BUTTON_RIGHT -> MouseButton.RIGHT;
             case InputConstants.MOUSE_BUTTON_MIDDLE -> MouseButton.MIDDLE;
-            case InputConstants.MOUSE_BUTTON_4 -> MouseButton.BACK;
-            case InputConstants.MOUSE_BUTTON_5 -> MouseButton.FORWARD;
+            case GLFW.GLFW_MOUSE_BUTTON_4 -> MouseButton.BACK;
+            case GLFW.GLFW_MOUSE_BUTTON_5 -> MouseButton.FORWARD;
             default -> MouseButton.UNKNOWN;
         };
     }
 
     /**
-     * Maps a Minecraft key, given as the scancode from {@code KeyEvent.key()}.
+     * Maps a Minecraft key, given as the key code {@code keyPressed} and {@code keyReleased} receive first.
      *
-     * @param scancode the SDL scancode
+     * @param keyCode the GLFW key code
      * @return the key, or {@link Key#UNKNOWN}
      */
-    public static Key key(final int scancode) {
-        return switch (scancode) {
+    public static Key key(final int keyCode) {
+        return switch (keyCode) {
             case InputConstants.KEY_A -> Key.A;
             case InputConstants.KEY_B -> Key.B;
             case InputConstants.KEY_C -> Key.C;
@@ -209,8 +234,8 @@ public final class MinecraftInput {
             case InputConstants.KEY_RCONTROL -> Key.RIGHT_CONTROL;
             case InputConstants.KEY_LALT -> Key.LEFT_ALT;
             case InputConstants.KEY_RALT -> Key.RIGHT_ALT;
-            case InputConstants.KEY_LGUI -> Key.LEFT_SUPER;
-            case InputConstants.KEY_RGUI -> Key.RIGHT_SUPER;
+            case InputConstants.KEY_LWIN -> Key.LEFT_SUPER;
+            case InputConstants.KEY_RWIN -> Key.RIGHT_SUPER;
             default -> Key.UNKNOWN;
         };
     }

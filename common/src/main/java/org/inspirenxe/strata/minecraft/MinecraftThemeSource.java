@@ -16,7 +16,7 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -193,7 +193,7 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
     }
 
     private List<ThemeDocument> read(final ThemeId id) {
-        final Identifier location = Identifier.tryBuild(id.namespace(), "strata/themes/" + id.path() + ".json");
+        final ResourceLocation location = ResourceLocation.tryBuild(id.namespace(), "strata/themes/" + id.path() + ".json");
         if (location == null) {
             return List.of();
         }
@@ -202,8 +202,11 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
         for (final Resource resource : this.minecraft.getResourceManager().getResourceStack(location)) {
             try {
                 final String pack = resource.sourcePackId();
-                final ThemeDocument document = new ThemeDocument(pack + "/" + location, resource.readAllAsString(),
-                        pack);
+                final String text;
+                try (InputStream in = resource.open()) {
+                    text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                }
+                final ThemeDocument document = new ThemeDocument(pack + "/" + location, text, pack);
                 (MinecraftThemeSource.fromMod(resource) ? mods : players).add(document);
             } catch (final IOException ignored) {
                 // An unreadable file is left out, as the ThemeSource contract asks

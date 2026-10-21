@@ -15,7 +15,8 @@
  */
 package org.inspirenxe.strata.minecraft;
 
-import net.minecraft.resources.Identifier;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +32,7 @@ import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.minecraft.MinecraftVisuals.AtlasSpriteVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
 
@@ -49,14 +51,14 @@ import java.util.Set;
  *     items, the hover highlight, drag previews and whatever other mods draw on slots. Strata content drawn later,
  *     such as a dialog, covers it.</li>
  *     <li>With {@link SlotRendering#STRATA}, the panel draws each slot itself: the hovered slot's
- *     {@value #STYLE_HIGHLIGHT_BACK} behind the items and {@value #STYLE_HIGHLIGHT_FRONT} over them (24 by 24
- *     around the slot, for slots that are highlightable), the item through an
+ *     {@value #STYLE_HIGHLIGHT_BACK} behind the items and {@value #STYLE_HIGHLIGHT_FRONT} over them (over the
+ *     slot's 16 by 16 item, for slots that are highlightable), the item through an
  *     {@link MinecraftVisuals#item item visual} with its count and damage bar, an empty slot's
- *     {@code getNoItemIcon()} sprite, and while the player drags a stack over slots, each slot's share of it on a
+ *     {@code getNoItemIcon()} sprite from its atlas, and while the player drags a stack over slots, each slot's share of it on a
  *     translucent white square, with the count in yellow where it reaches the slot's limit. As in vanilla, a slot
  *     that stops accepting the dragged stack leaves the drag, and the carried stack's count is worked out again.
  *     Items draw with vanilla's model seed for their slot, and a fake slot's item draws with no entity holding it,
- *     as vanilla's {@code fakeItem} does. Inactive slots draw nothing.</li>
+ *     as vanilla's {@code renderFakeItem} does. Inactive slots draw nothing.</li>
  * </ul>
  *
  * <p>The panel takes no input itself: the screen hands presses over it to vanilla. Get it from
@@ -68,9 +70,9 @@ import java.util.Set;
  *     <li>{@value #STYLE_SLOT} (paint, optional): behind each slot. Falls back to vanilla's
  *     {@code container/slot} sprite.</li>
  *     <li>{@value #STYLE_HIGHLIGHT_BACK} (paint, optional): behind the hovered slot's item, in Strata mode. Falls
- *     back to vanilla's {@code container/slot_highlight_back} sprite.</li>
+ *     back to nothing, as vanilla draws nothing there.</li>
  *     <li>{@value #STYLE_HIGHLIGHT_FRONT} (paint, optional): over the hovered slot's item, in Strata mode. Falls
- *     back to vanilla's {@code container/slot_highlight_front} sprite.</li>
+ *     back to vanilla's highlight, translucent white ({@code #80FFFFFF}).</li>
  * </ul>
  */
 public final class MenuPanel extends CustomComponent<MenuPanel> {
@@ -88,8 +90,9 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
     public static final String STYLE_HIGHLIGHT_FRONT = "slot.highlight_front";
 
     private static final Paint DEFAULT_SLOT = Paint.sprite(SpriteId.of("minecraft", "container/slot"));
-    private static final Paint DEFAULT_HIGHLIGHT_BACK = Paint.sprite(SpriteId.of("minecraft", "container/slot_highlight_back"));
-    private static final Paint DEFAULT_HIGHLIGHT_FRONT = Paint.sprite(SpriteId.of("minecraft", "container/slot_highlight_front"));
+    private static final Paint DEFAULT_HIGHLIGHT_BACK = Paint.NONE;
+    // Vanilla's renderSlotHighlight
+    private static final Paint DEFAULT_HIGHLIGHT_FRONT = Paint.solid(0x80FFFFFF);
     // Vanilla's drag preview square and its count at the slot's limit
     private static final int PREVIEW_COLOR = 0x80FFFFFF;
     private static final TextStyle LIMIT_STYLE = TextStyle.DEFAULT.withColor(0xFFFFFF55).withShadow(true);
@@ -190,7 +193,7 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
             final float y = bounds.y() + slots.get(i).y;
             this.itemRects[i] = new Rect(x, y, 16f, 16f);
             this.slotRects[i] = new Rect(x - 1f, y - 1f, 18f, 18f);
-            this.highlightRects[i] = new Rect(x - 4f, y - 4f, 24f, 24f);
+            this.highlightRects[i] = this.itemRects[i];
         }
     }
 
@@ -202,7 +205,7 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
         ItemStack stack = slot.getItem();
         boolean preview = false;
         int limit = -1;
-        // The same preview vanilla's extractSlot draws while a drag spreads the carried stack
+        // The same preview vanilla's renderSlot draws while a drag spreads the carried stack
         if (this.owner.isQuickCrafting() && dragged.contains(slot) && !carried.isEmpty()) {
             if (dragged.size() == 1) {
                 return;
@@ -211,7 +214,7 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
                 preview = true;
                 final int max = Math.min(carried.getMaxStackSize(), slot.getMaxStackSize(carried));
                 final int carry = stack.isEmpty() ? 0 : stack.getCount();
-                int count = AbstractContainerMenu.getQuickCraftPlaceCount(dragged.size(), this.owner.quickCraftType(), carried) + carry;
+                int count = AbstractContainerMenu.getQuickCraftPlaceCount(dragged, this.owner.quickCraftType(), carried) + carry;
                 if (count > max) {
                     count = max;
                     limit = max;
@@ -224,9 +227,9 @@ public final class MenuPanel extends CustomComponent<MenuPanel> {
         }
         final Rect rect = this.itemRects[i];
         if (stack.isEmpty()) {
-            final Identifier icon = slot.getNoItemIcon();
+            final Pair<ResourceLocation, ResourceLocation> icon = slot.getNoItemIcon();
             if (icon != null) {
-                painter.sprite(SpriteId.of(icon.getNamespace(), icon.getPath()), rect, 0xFFFFFFFF);
+                painter.visual(new AtlasSpriteVisual(icon.getFirst(), icon.getSecond()), rect, 0xFFFFFFFF);
             }
             return;
         }

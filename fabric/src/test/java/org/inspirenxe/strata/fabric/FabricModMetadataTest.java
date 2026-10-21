@@ -47,8 +47,8 @@ class FabricModMetadataTest {
         final String json = metadata().replaceAll("\\s+", "");
         assertTrue(json.contains("\"id\":\"strata\""), "the mod id is strata");
         assertTrue(json.contains("\"environment\":\"client\""), "Strata is client-only");
-        assertTrue(json.contains("\"minecraft\":\"~26.3\""), "it requires Minecraft 26.3");
-        assertTrue(json.contains("\"java\":\">=25\""), "it requires Java 25");
+        assertTrue(json.contains("\"minecraft\":\"~1.21.1\""), "it requires Minecraft 1.21.1");
+        assertTrue(json.contains("\"java\":\">=21\""), "it requires Java 21");
     }
 
     @Test

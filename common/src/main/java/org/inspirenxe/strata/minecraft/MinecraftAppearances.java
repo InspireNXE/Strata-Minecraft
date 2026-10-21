@@ -17,7 +17,7 @@ package org.inspirenxe.strata.minecraft;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.core.StrataCore;
@@ -52,7 +52,7 @@ final class MinecraftAppearances {
                 .build());
         StrataCore.registerDefaultAppearance(GameProfile.class, Appearance.<GameProfile>builder()
                 .icon(MinecraftVisuals::playerFace)
-                .name(profile -> MinecraftText.of(Component.literal(profile.name())))
+                .name(profile -> MinecraftText.of(Component.literal(profile.getName())))
                 .build());
         StrataCore.registerDefaultAppearance(PlayerSkin.class, Appearance.<PlayerSkin>builder()
                 .icon(MinecraftVisuals::playerFace)

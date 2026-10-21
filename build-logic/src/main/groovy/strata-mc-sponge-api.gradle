@@ -1,5 +1,5 @@
 // sponge and the projects that compile it: SpongeAPI from Sponge's repository, compileOnly, because the platform
-// brings it: SpongeVanilla always, NeoForge only with SpongeNeo installed, Forge only with SpongeForge installed.
+// brings it: NeoForge only with SpongeNeo installed, Forge only with SpongeForge installed.
 plugins {
     id 'strata-mc-java'
 }

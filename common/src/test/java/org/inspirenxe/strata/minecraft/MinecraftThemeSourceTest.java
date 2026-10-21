@@ -16,7 +16,7 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.repository.KnownPack;
 import net.minecraft.server.packs.resources.Resource;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
  * Theme files read from the resource manager, and the vanilla theme they restyle.
  */
 class MinecraftThemeSourceTest {
-    private static final Identifier VANILLA_FILE = Identifier.fromNamespaceAndPath("minecraft", "strata/themes/vanilla.json");
+    private static final ResourceLocation VANILLA_FILE = ResourceLocation.fromNamespaceAndPath("minecraft", "strata/themes/vanilla.json");
 
     private ResourceManager resources;
     private MinecraftThemeSource source;

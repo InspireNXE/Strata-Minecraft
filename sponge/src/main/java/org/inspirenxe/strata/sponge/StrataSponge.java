@@ -18,9 +18,9 @@ package org.inspirenxe.strata.sponge;
 import org.inspirenxe.strata.minecraft.StrataMinecraft;
 
 /**
- * Starts Strata-Minecraft on a client that has SpongeAPI: SpongeVanilla, or NeoForge with SpongeNeo installed. The
- * SpongeVanilla plugin calls {@link #install()} when Sponge constructs it, and the NeoForge mod calls it in place of
- * {@link StrataMinecraft#install()} when NeoForge reports SpongeAPI loaded.
+ * Starts Strata-Minecraft on a client that has SpongeAPI: NeoForge with SpongeNeo installed, or Forge with
+ * SpongeForge. The NeoForge and Forge mods call {@link #install()} in place of {@link StrataMinecraft#install()} when
+ * their loader reports SpongeAPI loaded.
  *
  * <p>This is where Strata-Minecraft hands Strata the parts Sponge implements in place of Strata's defaults. Today that
  * is the cause stack: Strata's causes are backed by Sponge's, through {@link SpongeCauseStack}.</p>

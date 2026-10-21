@@ -1,4 +1,4 @@
-// Every Strata-Minecraft project: Java 25, JUnit, sources jar, shared jar metadata
+// Every Strata-Minecraft project: Java (java_version), JUnit, sources jar, shared jar metadata
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -25,7 +25,8 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile'])
+    // -try: Java 21 has no unnamed variables, so try-with-resources frames the body never names are named anyway
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile', '-Xlint:-try'])
 }
 
 tasks.named('test', Test) {

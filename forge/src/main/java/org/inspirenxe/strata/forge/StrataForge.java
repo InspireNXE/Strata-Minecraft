@@ -43,7 +43,7 @@ public final class StrataForge {
      */
     public StrataForge() {
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            StrataForge.install(ModList.isLoaded(StrataForge.SPONGE_API));
+            StrataForge.install(ModList.get().isLoaded(StrataForge.SPONGE_API));
         }
     }
 

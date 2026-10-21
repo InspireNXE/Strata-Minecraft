@@ -15,16 +15,13 @@
  */
 package org.inspirenxe.strata.minecraft;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.ItemSlotMouseAction;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -42,10 +39,7 @@ import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.spi.HeldKeys;
 import org.inspirenxe.strata.spi.ScreenHost;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -74,14 +68,15 @@ import java.util.Set;
  *     the menu panel, over the tree's root, or over nothing. Releases and drags follow the press. Scrolls over the
  *     panel go to vanilla first. Keys go to Strata first and, unless it uses them or a modal dialog is open, to
  *     vanilla, so the hotbar, drop, pick-block and inventory keys work as the player bound them.</li>
- *     <li>Vanilla draws the carried stack after Strata, over everything, and the hovered slot's tooltip at the end
- *     of the frame, except while the pointer is outside the panel or a modal dialog is open.</li>
+ *     <li>The screen draws the carried stack after Strata, over everything, and the hovered slot's tooltip after
+ *     it, except while the pointer is outside the panel or a modal dialog is open. Vanilla's own drawing inside the
+ *     panel leaves the carried stack out, except during a drag, when its previews need the stack and both draw
+ *     it.</li>
  *     <li>The slots are drawn by vanilla or by Strata, as {@link SlotRendering} describes. The player can force
  *     vanilla drawing in {@code config/strata-client.json}, read each time a screen opens: see
  *     {@link #slotRendering()}. In Strata mode the screen still does what vanilla's own slot drawing does
- *     besides drawing: it tracks the hovered slot, tells the slot mouse actions (such as bundles') when the pointer
- *     leaves a slot, and drops a slot that stops accepting a dragged stack from the drag, drawing the carried
- *     stack's new count itself.</li>
+ *     besides drawing: it tracks the hovered slot, and drops a slot that stops accepting a dragged stack from the
+ *     drag.</li>
  *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is dimmed
  *     with vanilla's gradient, as for any container screen, and the game does not pause.</li>
  * </ul>
@@ -105,20 +100,20 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     private final HeldKeys heldKeys;
     private final Set<Integer> vanillaButtons;
     private final PanelOwner owner;
-    // Vanilla's own list is private; every action goes through addItemSlotMouseAction, so this mirrors it
-    private final List<ItemSlotMouseAction> mouseActions;
     private SlotRendering rendering;
     private MinecraftCanvas canvas;
     private ScreenHost host;
     private MenuPanel panel;
     private int quickCraftType;
-    private GuiGraphicsExtractor frameGraphics;
+    private GuiGraphics frameGraphics;
     private int frameMouseX;
     private int frameMouseY;
     private float frameA;
-    private boolean drawingCarried;
-    private boolean recounted;
-    private int carriedRemainder;
+    private boolean drawingVanilla;
+    /**
+     * The first half of a character typed as two {@code char}s, until the second arrives.
+     */
+    private char highSurrogate;
 
     /**
      * Creates the screen for a menu of vanilla's default size, 176 by 166, with vanilla drawing the slots.
@@ -150,7 +145,9 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     public StrataContainerScreen(final M menu, final Inventory inventory, final Component title, final int imageWidth,
                                  final int imageHeight, final ContainerContent<? super M> content, final ThemeRef theme,
                                  final SlotRendering slotRendering) {
-        super(menu, inventory, title, imageWidth, imageHeight);
+        super(menu, inventory, title);
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
         this.content = Objects.requireNonNull(content, "content");
         this.theme = null;
         this.themeRef = Objects.requireNonNull(theme, "theme");
@@ -158,7 +155,6 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         this.heldKeys = new HeldKeys();
         this.vanillaButtons = new HashSet<>();
         this.owner = new PanelOwner();
-        this.mouseActions = new ArrayList<>();
     }
 
     /**
@@ -178,7 +174,9 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     public StrataContainerScreen(final M menu, final Inventory inventory, final Component title, final int imageWidth,
                                  final int imageHeight, final ContainerContent<? super M> content, final Theme theme,
                                  final SlotRendering slotRendering) {
-        super(menu, inventory, title, imageWidth, imageHeight);
+        super(menu, inventory, title);
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
         this.content = Objects.requireNonNull(content, "content");
         this.theme = Objects.requireNonNull(theme, "theme");
         this.themeRef = null;
@@ -186,7 +184,6 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         this.heldKeys = new HeldKeys();
         this.vanillaButtons = new HashSet<>();
         this.owner = new PanelOwner();
-        this.mouseActions = new ArrayList<>();
     }
 
     /**
@@ -202,7 +199,6 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
     @Override
     protected void init() {
-        this.mouseActions.clear();
         super.init();
         if (this.host == null) {
             this.rendering = StrataClientConfig.load(StrataClientConfig.file(this.minecraft.gameDirectory.toPath()))
@@ -224,18 +220,16 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     }
 
     @Override
-    protected void addItemSlotMouseAction(final ItemSlotMouseAction itemSlotMouseAction) {
-        super.addItemSlotMouseAction(itemSlotMouseAction);
-        this.mouseActions.add(itemSlotMouseAction);
-    }
-
-    @Override
     public void removed() {
         if (this.host != null) {
             this.host.close();
             this.host = null;
         }
+        if (this.canvas != null) {
+            this.canvas.resetCursor();
+        }
         this.heldKeys.clear();
+        this.highSurrogate = 0;
         this.vanillaButtons.clear();
         super.removed();
     }
@@ -245,74 +239,93 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     // ------------------------------------------------------------------
 
     @Override
-    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float a) {
         this.placeMenu(false);
         this.frameGraphics = graphics;
         this.frameMouseX = mouseX;
         this.frameMouseY = mouseY;
         this.frameA = a;
-        if (!this.isQuickCrafting) {
-            this.recounted = false;
-        }
+        // Vanilla's background, the dimmed world; the rest of vanilla's drawing runs inside the panel
+        this.renderBackground(graphics, mouseX, mouseY, a);
         if (this.rendering == SlotRendering.STRATA) {
             // Vanilla sets this while drawing its slots, which Strata mode skips
             this.hover(this.pointerOverMenu() ? this.slotAt(mouseX, mouseY) : null);
         }
         this.canvas.begin(graphics);
         this.host.render(this.canvas);
-        if (this.rendering == SlotRendering.STRATA) {
-            this.extractTooltip(graphics, mouseX, mouseY);
+        // Over everything Strata drew
+        this.canvas.nextLayer();
+        this.renderCarried(graphics, mouseX, mouseY);
+        if (this.pointerOverMenu()) {
+            this.renderTooltip(graphics, mouseX, mouseY);
         }
-        this.drawingCarried = true;
-        try {
-            this.extractCarriedItem(graphics, mouseX, mouseY);
-        } finally {
-            this.drawingCarried = false;
+        this.canvas.end();
+    }
+
+    @Override
+    public void renderBackground(final GuiGraphics graphics, final int mouseX, final int mouseY, final float a) {
+        // Drawn once before Strata's tree, not again when vanilla's drawing runs inside the panel
+        if (!this.drawingVanilla) {
+            super.renderBackground(graphics, mouseX, mouseY, a);
         }
     }
 
     @Override
-    public void extractCarriedItem(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
-        // Held back while vanilla's contents draw inside Strata's tree, so the stack floats over all of Strata
-        if (!this.drawingCarried) {
-            return;
-        }
-        if (!this.recounted || !this.isQuickCrafting) {
-            super.extractCarriedItem(graphics, mouseX, mouseY);
-            return;
-        }
-        // Vanilla's carried stack with the count the panel worked out again, since vanilla keeps its own private
+    protected void renderBg(final GuiGraphics graphics, final float a, final int mouseX, final int mouseY) {
+        // Strata draws the screen
+    }
+
+    @Override
+    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        // Strata draws the screen's text
+    }
+
+    /**
+     * Draws the carried stack at the pointer as vanilla does, with the count a drag leaves on it.
+     */
+    private void renderCarried(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         ItemStack carried = this.menu.getCarried();
         if (carried.isEmpty()) {
             return;
         }
         String count = null;
-        if (this.quickCraftSlots.size() > 1) {
-            carried = carried.copyWithCount(this.carriedRemainder);
+        if (this.isQuickCrafting && this.quickCraftSlots.size() > 1) {
+            // Vanilla keeps its own count private, so it is worked out again
+            carried = carried.copyWithCount(quickCraftRemainder(carried, this.quickCraftSlots, this.quickCraftType));
             if (carried.isEmpty()) {
                 count = ChatFormatting.YELLOW + "0";
             }
         }
-        graphics.nextStratum();
-        graphics.item(carried, mouseX - 8, mouseY - 8);
-        graphics.itemDecorations(this.font, carried, mouseX - 8, mouseY - 8, count);
-    }
-
-    @Override
-    protected void extractTooltip(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
-        if (this.pointerOverMenu()) {
-            super.extractTooltip(graphics, mouseX, mouseY);
+        graphics.pose().pushPose();
+        try {
+            // Vanilla's offset for a floating item
+            graphics.pose().translate(0f, 0f, 232f);
+            graphics.renderItem(carried, mouseX - 8, mouseY - 8);
+            graphics.renderItemDecorations(this.font, carried, mouseX - 8, mouseY - 8, count);
+        } finally {
+            graphics.pose().popPose();
         }
     }
 
-    @Override
-    protected void extractLabels(final GuiGraphicsExtractor graphics, final int xm, final int ym) {
-        // Strata draws the screen's text
-    }
-
     private void drawVanillaSlots() {
-        // Vanilla's own container drawing: slots, highlights and drag previews, with other mods' additions
-        super.extractRenderState(this.frameGraphics, this.frameMouseX, this.frameMouseY, this.frameA);
+        // Vanilla's own container drawing: slots, highlights and drag previews, with other mods' additions. The
+        // carried stack is drawn last, over Strata, so vanilla leaves it out unless a drag's previews need it.
+        final ItemStack carried = this.menu.getCarried();
+        final boolean hideCarried = !this.isQuickCrafting && !carried.isEmpty();
+        this.drawingVanilla = true;
+        if (hideCarried) {
+            this.menu.setCarried(ItemStack.EMPTY);
+        }
+        try {
+            super.render(this.frameGraphics, this.frameMouseX, this.frameMouseY, this.frameA);
+        } finally {
+            if (hideCarried) {
+                this.menu.setCarried(carried);
+            }
+            this.drawingVanilla = false;
+            // Clears the depth vanilla's items leave, so Strata content after the panel covers them
+            this.canvas.nextLayer();
+        }
     }
 
     // ------------------------------------------------------------------
@@ -325,40 +338,41 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     }
 
     @Override
-    public boolean mouseClicked(final MouseButtonEvent event, final boolean doubleClick) {
+    public boolean mouseClicked(final double x, final double y, final int button) {
         final Overlays overlays = this.host.factory().overlays();
         final int openBefore = overlays.open().size();
-        final boolean used = this.host.pointerButton((float) event.x(), (float) event.y(),
-                MinecraftInput.button(event.button()), true, MinecraftInput.modifiers(event));
+        final boolean used = this.host.pointerButton((float) x, (float) y, MinecraftInput.button(button), true,
+                MinecraftInput.heldModifiers());
         if (overlays.open().size() < openBefore || !this.pointerOverMenu()) {
             // The press closed a popup, or landed on Strata content
             return used;
         }
         final boolean wasQuickCrafting = this.isQuickCrafting;
-        this.vanillaButtons.add(event.button());
-        super.mouseClicked(event, doubleClick);
+        this.vanillaButtons.add(button);
+        super.mouseClicked(x, y, button);
         if (!wasQuickCrafting && this.isQuickCrafting) {
             // Vanilla keeps the drag's type private; it follows from the button that started it
-            this.quickCraftType = event.button() == 1 ? 0 : event.button() == 3 ? 1 : 2;
+            this.quickCraftType = button == InputConstants.MOUSE_BUTTON_LEFT ? 0
+                    : button == InputConstants.MOUSE_BUTTON_RIGHT ? 1 : 2;
         }
         return true;
     }
 
     @Override
-    public boolean mouseReleased(final MouseButtonEvent event) {
-        final boolean used = this.host.pointerButton((float) event.x(), (float) event.y(),
-                MinecraftInput.button(event.button()), false, MinecraftInput.modifiers(event));
-        if (this.vanillaButtons.remove(event.button())) {
-            super.mouseReleased(event);
+    public boolean mouseReleased(final double x, final double y, final int button) {
+        final boolean used = this.host.pointerButton((float) x, (float) y, MinecraftInput.button(button), false,
+                MinecraftInput.heldModifiers());
+        if (this.vanillaButtons.remove(button)) {
+            super.mouseReleased(x, y, button);
             return true;
         }
         return used;
     }
 
     @Override
-    public boolean mouseDragged(final MouseButtonEvent event, final double dx, final double dy) {
-        if (this.vanillaButtons.contains(event.button())) {
-            return super.mouseDragged(event, dx, dy);
+    public boolean mouseDragged(final double x, final double y, final int button, final double dx, final double dy) {
+        if (this.vanillaButtons.contains(button)) {
+            return super.mouseDragged(x, y, button, dx, dy);
         }
         // Strata follows drags through mouseMoved
         return false;
@@ -374,38 +388,46 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     }
 
     @Override
-    public boolean keyPressed(final KeyEvent event) {
-        final Key key = MinecraftInput.key(event.key());
+    public boolean keyPressed(final int keyCode, final int scanCode, final int modifiers) {
+        final Key key = MinecraftInput.key(keyCode);
         final KeyAction action = this.heldKeys.press(key);
-        if (this.host.key(key, action, MinecraftInput.modifiers(event))) {
+        if (this.host.key(key, action, MinecraftInput.modifiers(modifiers))) {
             return true;
         }
         if (hasModal(this.host.factory().overlays())) {
             return false;
         }
         if (this.pointerOverMenu()) {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
         // Vanilla finds the hovered slot by position alone; keep slot keys away from slots Strata content covers
         final Slot hovered = this.hoveredSlot;
         this.hoveredSlot = null;
         try {
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         } finally {
             this.hoveredSlot = hovered;
         }
     }
 
     @Override
-    public boolean keyReleased(final KeyEvent event) {
-        final Key key = MinecraftInput.key(event.key());
+    public boolean keyReleased(final int keyCode, final int scanCode, final int modifiers) {
+        final Key key = MinecraftInput.key(keyCode);
         this.heldKeys.release(key);
-        return this.host.key(key, KeyAction.RELEASE, MinecraftInput.modifiers(event)) || super.keyReleased(event);
+        return this.host.key(key, KeyAction.RELEASE, MinecraftInput.modifiers(modifiers))
+                || super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(final CharacterEvent event) {
-        return this.host.charTyped(event.codepoint(), Modifiers.NONE) || super.charTyped(event);
+    public boolean charTyped(final char character, final int modifiers) {
+        if (Character.isHighSurrogate(character)) {
+            this.highSurrogate = character;
+            return true;
+        }
+        final int codepoint = Character.isLowSurrogate(character) && this.highSurrogate != 0
+                ? Character.toCodePoint(this.highSurrogate, character) : character;
+        this.highSurrogate = 0;
+        return this.host.charTyped(codepoint, Modifiers.NONE) || super.charTyped(character, modifiers);
     }
 
     // ------------------------------------------------------------------
@@ -446,19 +468,10 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     }
 
     /**
-     * Sets the hovered slot and, as vanilla's drawing does, tells the slot mouse actions about a slot the pointer
-     * left.
+     * Sets the hovered slot, as vanilla's drawing does.
      */
     private void hover(final Slot slot) {
-        final Slot previous = this.hoveredSlot;
         this.hoveredSlot = slot;
-        if (previous != null && previous != slot && previous.hasItem()) {
-            for (final ItemSlotMouseAction action : this.mouseActions) {
-                if (action.matches(previous)) {
-                    action.onStopHovering(previous);
-                }
-            }
-        }
     }
 
     /**
@@ -470,7 +483,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
      * @param type the drag's type: 0 spreads evenly, 1 places one each, 2 clones
      * @return the count left on the cursor
      */
-    static int quickCraftRemainder(final ItemStack carried, final Collection<Slot> slots, final int type) {
+    static int quickCraftRemainder(final ItemStack carried, final Set<Slot> slots, final int type) {
         if (carried.isEmpty()) {
             return 0;
         }
@@ -482,7 +495,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             final ItemStack inSlot = slot.getItem();
             final int carry = inSlot.isEmpty() ? 0 : inSlot.getCount();
             final int max = Math.min(carried.getMaxStackSize(), slot.getMaxStackSize(carried));
-            final int count = Math.min(AbstractContainerMenu.getQuickCraftPlaceCount(slots.size(), type, carried) + carry, max);
+            final int count = Math.min(AbstractContainerMenu.getQuickCraftPlaceCount(slots, type, carried) + carry, max);
             remainder -= count - carry;
         }
         return remainder;
@@ -552,7 +565,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         return null;
     }
 
-    private static Identifier menuTypeId(final AbstractContainerMenu menu) {
+    private static ResourceLocation menuTypeId(final AbstractContainerMenu menu) {
         try {
             return BuiltInRegistries.MENU.getKey(menu.getType());
         } catch (final UnsupportedOperationException noType) {
@@ -607,10 +620,8 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
         @Override
         public void dropFromDrag(final Slot slot) {
-            final StrataContainerScreen<M> screen = StrataContainerScreen.this;
-            screen.quickCraftSlots.remove(slot);
-            screen.recounted = true;
-            screen.carriedRemainder = quickCraftRemainder(screen.menu.getCarried(), screen.quickCraftSlots, screen.quickCraftType);
+            // The carried stack's count follows, since renderCarried works it out from the slots each frame
+            StrataContainerScreen.this.quickCraftSlots.remove(slot);
         }
 
         @Override

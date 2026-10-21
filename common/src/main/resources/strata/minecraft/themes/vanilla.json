@@ -115,7 +115,7 @@
     "calendar.focus": "#FFFFFFFF",
     "avatar.background": { "sprite": "minecraft:container/slot" },
     "badge.background": "none",
-    "infobar.background": { "nine_slice": "minecraft:toast/now_playing", "border": 4 },
+    "infobar.background": { "nine_slice": "strata:infobar/background", "border": 4 },
     "infobar.accent.info": "#FF5555FF",
     "infobar.accent.success": "#FF55FF55",
     "infobar.accent.warning": "#FFFFAA00",
@@ -133,10 +133,10 @@
     "overlay.backdrop": { "gradient": ["#C0101010", "#D0101010"] },
     "toast.background": { "nine_slice": "minecraft:toast/system", "border": [17, 30, 4, 4] },
     "slot.background": { "sprite": "minecraft:container/slot" },
-    "slot.highlight_back": { "sprite": "minecraft:container/slot_highlight_back" },
-    "slot.highlight_front": { "sprite": "minecraft:container/slot_highlight_front" },
-    "tooltip.background": { "nine_slice": "minecraft:tooltip/background", "border": 9 },
-    "tooltip.frame": { "nine_slice": "minecraft:tooltip/frame", "border": 10 }
+    "slot.highlight_back": "none",
+    "slot.highlight_front": "#80FFFFFF",
+    "tooltip.background": { "nine_slice": "strata:tooltip/background", "border": 1 },
+    "tooltip.frame": { "nine_slice": "strata:tooltip/frame", "border": 2 }
   },
   "text": {
     "button.text": { "color": "#FFFFFFFF", "shadow": true },
@@ -210,7 +210,7 @@
     "window.padding": [18, 0, 18, 18],
     "messagebox.padding": 0,
     "tooltip.padding": 3,
-    "tooltip.outset": 9,
+    "tooltip.outset": 1,
     "grid.cell.highlight": 1,
     "toast.padding": [18, 7, 12, 4],
     "list.padding": [0, 2, 0, 2]

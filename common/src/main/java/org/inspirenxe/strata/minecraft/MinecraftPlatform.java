@@ -36,9 +36,8 @@ import java.util.Optional;
  *     <li>Text is measured with the screen's font through {@link MinecraftTextMetrics}.</li>
  *     <li>The clipboard is vanilla's keyboard handler. An empty clipboard reads as empty.</li>
  *     <li>The clock is {@link Clock#SYSTEM}.</li>
- *     <li>Text input: since 26.3 Minecraft sends no typed characters until a text field reports focus, so starting
- *     and stopping text input calls {@code Minecraft.onTextInputFocusChange} for the hosting screen. A secret field
- *     starts text input the same way: the game's text input takes no input type, so it has no mode for secrets.</li>
+ *     <li>Text input: Minecraft 1.21.1 sends typed characters to the screen whether or not a text field has focus,
+ *     and has no input method support to start or stop, so starting and stopping text input does nothing.</li>
  *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
  *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
@@ -67,7 +66,7 @@ public final class MinecraftPlatform implements Platform {
      *
      * @param minecraft the game
      * @param textMetrics the metrics matching the screen's canvas
-     * @param listener the vanilla screen hosting Strata; Minecraft tracks text focus per listener
+     * @param listener the vanilla screen hosting Strata
      */
     public MinecraftPlatform(final Minecraft minecraft, final MinecraftTextMetrics textMetrics, final GuiEventListener listener) {
         MinecraftTranslator.install();
@@ -86,15 +85,14 @@ public final class MinecraftPlatform implements Platform {
                 minecraft.keyboardHandler.setClipboard(value);
             }
         };
+        // Minecraft 1.21.1 sends typed characters regardless of focus
         this.textInput = new TextInputSink() {
             @Override
             public void start(final Rect caretArea) {
-                minecraft.onTextInputFocusChange(listener, true);
             }
 
             @Override
             public void stop() {
-                minecraft.onTextInputFocusChange(listener, false);
             }
         };
     }

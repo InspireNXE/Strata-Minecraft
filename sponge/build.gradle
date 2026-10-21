@@ -5,13 +5,13 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
-description = 'The parts of the Minecraft adapter that need SpongeAPI, shared by SpongeVanilla, NeoForge with SpongeNeo and Forge with SpongeForge.'
+description = 'The parts of the Minecraft adapter that need SpongeAPI, shared by NeoForge with SpongeNeo and Forge with SpongeForge.'
 
 neoForge {
     neoFormVersion = neo_form_version
 }
 
-// spongevanilla, neoforge and forge compile these sources into their own jars, as they do common's
+// neoforge and forge compile these sources into their own jars, as they do common's
 configurations {
     spongeJava {
         canBeResolved = false

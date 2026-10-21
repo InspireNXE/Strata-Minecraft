@@ -21,7 +21,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -50,7 +50,7 @@ import java.util.Set;
  * @param forceVanillaSlots whether every container screen draws its slots through vanilla
  * @param forceVanillaSlotsFor the menu types whose screens draw their slots through vanilla
  */
-record StrataClientConfig(boolean forceVanillaSlots, Set<Identifier> forceVanillaSlotsFor) {
+record StrataClientConfig(boolean forceVanillaSlots, Set<ResourceLocation> forceVanillaSlotsFor) {
     /**
      * The settings when the player has changed nothing.
      */
@@ -132,13 +132,13 @@ record StrataClientConfig(boolean forceVanillaSlots, Set<Identifier> forceVanill
                 LOGGER.warn("forceVanillaSlots in {} is not true or false", source);
             }
         }
-        final Set<Identifier> types = new HashSet<>();
+        final Set<ResourceLocation> types = new HashSet<>();
         final JsonElement some = root.get("forceVanillaSlotsFor");
         if (some != null) {
             if (some.isJsonArray()) {
                 for (final JsonElement entry : (JsonArray) some) {
-                    final Identifier id = entry.isJsonPrimitive() && entry.getAsJsonPrimitive().isString()
-                            ? Identifier.tryParse(entry.getAsString()) : null;
+                    final ResourceLocation id = entry.isJsonPrimitive() && entry.getAsJsonPrimitive().isString()
+                            ? ResourceLocation.tryParse(entry.getAsString()) : null;
                     if (id == null) {
                         LOGGER.warn("Skipping {} in forceVanillaSlotsFor in {}: not a menu type id", entry, source);
                     } else {
@@ -160,7 +160,7 @@ record StrataClientConfig(boolean forceVanillaSlots, Set<Identifier> forceVanill
      * @return {@link SlotRendering#VANILLA} when the player forces it for every screen or for this menu type,
      *     otherwise {@code requested}
      */
-    SlotRendering apply(final SlotRendering requested, final Identifier menuType) {
+    SlotRendering apply(final SlotRendering requested, final ResourceLocation menuType) {
         if (this.forceVanillaSlots || menuType != null && this.forceVanillaSlotsFor.contains(menuType)) {
             return SlotRendering.VANILLA;
         }
