@@ -22,6 +22,12 @@ repositories {
     }
 }
 
+// A cached -SNAPSHOT is trusted for a day by default, and CI restores the cache between runs, so a build would keep
+// an old Strata snapshot. Check the repository for a newer one on every build.
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
+}
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(java_version)
 }
