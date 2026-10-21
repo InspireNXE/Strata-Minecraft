@@ -2,16 +2,19 @@
 
 # Strata-Minecraft
 
-Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-agnostic GUI library for Java games, inside Minecraft. Screens go through vanilla's GUI pipeline and take input from vanilla's screen callbacks, so they look and behave like vanilla screens and follow the player's resource packs.
+Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-agnostic GUI library for Java, inside Minecraft. Screens go through vanilla's GUI pipeline and take input from vanilla's screen callbacks, so they look and behave like vanilla screens and follow the player's resource packs.
 
 ## Loaders
 
-| | Loader | Minecraft | Versions |
-|---|---|---|---|
-| <img src=".github/assets/loader-neoforge.svg" width="40" alt=""> | NeoForge | 26.3 | NeoForge 26.3.0.83 or newer. SpongeNeo is optional. |
-| <img src=".github/assets/loader-forge.svg" width="40" alt=""> | Forge | 26.3 | Forge 66.0.13 or newer. SpongeForge is optional. |
-| <img src=".github/assets/loader-fabric.svg" width="40" alt=""> | Fabric | 26.3 | Fabric Loader 0.19.5 or newer. Fabric API is not needed at run time. |
-| <img src=".github/assets/loader-sponge.svg" width="40" alt=""> | Sponge | 26.3 | SpongeVanilla for SpongeAPI 21. |
+Each Minecraft version has a branch of its own: `main` for the newest, `mc/1.21.1` and `mc/1.20.1` for the versions most mods settled on.
+
+| Minecraft | Branch | <img src=".github/assets/loader-neoforge.svg" width="24" alt=""> NeoForge | <img src=".github/assets/loader-forge.svg" width="24" alt=""> Forge | <img src=".github/assets/loader-fabric.svg" width="24" alt=""> Fabric | <img src=".github/assets/loader-sponge.svg" width="24" alt=""> Sponge |
+|---|---|---|---|---|---|
+| 26.3 | `main` | 26.3.0.83 or newer, SpongeNeo optional | 66.0.13 or newer, SpongeForge optional | Loader 0.19.5 or newer | SpongeVanilla for SpongeAPI 21 |
+| 1.21.1 | `mc/1.21.1` | 21.1.264 or newer, SpongeNeo optional | 52.1.20 or newer, SpongeForge optional | Loader 0.19.5 or newer | Through SpongeNeo and SpongeForge, SpongeAPI 12 |
+| 1.20.1 | `mc/1.20.1` | | 47.4.28 or newer | Loader 0.19.5 or newer | |
+
+Fabric API is not needed at run time on any version.
 
 Strata is a client-side mod with the id `strata` on every loader. Players install the jar for their loader next to your mod. Nothing is published yet.
 
