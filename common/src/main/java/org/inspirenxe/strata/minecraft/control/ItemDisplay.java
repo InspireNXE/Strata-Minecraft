@@ -35,7 +35,8 @@ import java.util.function.Function;
 
 /**
  * An item stack shown the way vanilla shows one in a slot, with its tooltip, like vanilla's
- * {@code ItemDisplayWidget}. It shows the stack only and takes no clicks; interactive slots are not built yet.
+ * {@code ItemDisplayWidget}. It shows the stack only and takes no clicks; for interactive slots, use a
+ * {@link org.inspirenxe.strata.minecraft.StrataContainerScreen}.
  *
  * <pre>{@code
  * ItemDisplay display = new ItemDisplay(factory, new ItemStack(Items.DIAMOND, 64));

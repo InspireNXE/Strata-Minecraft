@@ -48,8 +48,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     reads it as a pack file. {@link #bases} returns it, with the layer {@code vanilla}, the vanilla pack's id. The
  *     file names {@code strata:flat} as its parent and sets every key the flat theme sets, so no key of a built-in
  *     control comes from the flat theme.</li>
- *     <li>Mods can register themes built in code with {@link #register}, though
- *     {@link org.inspirenxe.strata.api.Strata#themes()} does the same on every engine.</li>
+ *     <li>Mods can register themes built in code with {@link #register}. A theme defined from a parent and
+ *     overrides with {@link org.inspirenxe.strata.api.Strata#themes()} works on every engine.</li>
  *     <li>Theme files are read from {@code assets/<namespace>/strata/themes/<path>.json} in every resource pack that
  *     has one. {@link #documents} returns the player's packs first, a server's or world's pack among them, in the
  *     order the game stacks them, and then the packs of mods' own resources, in the order the game stacks those, so

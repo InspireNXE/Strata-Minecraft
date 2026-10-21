@@ -63,8 +63,8 @@ import java.util.function.Function;
  *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
  *     visuals draw the face and hat from the skin texture with vanilla's {@code GUI_TEXTURED} pipeline, stretched
  *     over the rectangle rounded outward and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
- *     <li>{@link #nextLayer()} starts a new vanilla stratum, so later screens draw over blur and earlier
- *     layers.</li>
+ *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
+ *     tooltip, covers earlier layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
  * </ul>
  *

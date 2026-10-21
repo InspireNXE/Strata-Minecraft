@@ -118,7 +118,7 @@ Declare the dependency in `fabric.mod.json`:
 
 The examples accept any Strata version, because both loaders sort `0.1.0-SNAPSHOT` before `0.1.0`, so a range such as `[0.1.0,)` would reject the current build. Pin a real range once releases exist.
 
-Only use the `org.inspirenxe.strata.api` packages and the `org.inspirenxe.strata.minecraft` package from your mod. The loader jar also carries `spi` and `core`, because the game needs them at run time, but they are not part of the API and change without notice.
+Only use the `org.inspirenxe.strata.api` packages and the `org.inspirenxe.strata.minecraft` packages from your mod. The loader jar also carries `spi` and `core`, because the game needs them at run time, but they are not part of the API and change without notice.
 
 Strata is a client-side mod (`side = "CLIENT"` on NeoForge, `"environment": "client"` on Fabric). Keep every class that touches Strata out of code that runs on a dedicated server, the same as you would for vanilla screen classes.
 
@@ -130,6 +130,6 @@ Both loaders can also nest one mod jar inside another: NeoForge with `jarJar`, F
 - [notes/DESIGN.md](notes/DESIGN.md): how the adapter maps Strata's SPI onto 26.3, the verified 26.3 facts, and the decisions and open questions.
 - [notes/ROADMAP.md](notes/ROADMAP.md): what is left before Almura's screens can run on Strata in game.
 
-Strata's own documentation, for components, layout, events, themes and writing screens, is in the [Strata repository](https://github.com/InspireNXE/Strata).
+Strata's own documentation, for components, layout, events, themes and writing screens, is in the [Strata-Docs repository](https://github.com/InspireNXE/Strata-Docs). Its design notes and roadmap are in the [Strata repository](https://github.com/InspireNXE/Strata).
 
 Strata-Minecraft is released under the Apache License, Version 2.0.

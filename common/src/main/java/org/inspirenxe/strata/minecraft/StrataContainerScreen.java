@@ -82,8 +82,8 @@ import java.util.Set;
  *     besides drawing: it tracks the hovered slot, tells the slot mouse actions (such as bundles') when the pointer
  *     leaves a slot, and drops a slot that stops accepting a dragged stack from the drag, drawing the carried
  *     stack's new count itself.</li>
- *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is blurred
- *     and dimmed as for any container screen, and the game does not pause.</li>
+ *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is dimmed
+ *     with vanilla's gradient, as for any container screen, and the game does not pause.</li>
  * </ul>
  *
  * <p>If the tree does not hold the panel, or holds it inside a {@link ScrollPanel}, the screen throws
