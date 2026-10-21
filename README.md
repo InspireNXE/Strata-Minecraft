@@ -4,7 +4,7 @@ Strata-Minecraft runs [Strata](https://github.com/InspireNXE/Strata), an engine-
 
 | Module | What it is |
 |---|---|
-| `common` | The adapter, written against vanilla classes only: `StrataScreen`, `StrataContainerScreen` with its `MenuPanel`, `MinecraftThemeSource` with the vanilla theme, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftText`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput` in `org.inspirenxe.strata.minecraft`, and `ItemDisplay` in `org.inspirenxe.strata.minecraft.control`. |
+| `common` | The adapter, written against vanilla classes only: `StrataMinecraft`, which hands Strata the screen controller, `StrataScreen`, `StrataContainerScreen` with its `MenuPanel`, `MinecraftThemeSource` with the vanilla theme, `MinecraftVisuals`, `MinecraftTooltips`, `MinecraftText`, `MinecraftCanvas`, `MinecraftPlatform`, `MinecraftTextMetrics` and `MinecraftInput` in `org.inspirenxe.strata.minecraft`, and `ItemDisplay` in `org.inspirenxe.strata.minecraft.control`. |
 | `neoforge` | The `strata` mod jar for NeoForge: `common` compiled in, Strata's `api`, `spi` and `core` jars nested with `jarJar`, and an empty `@Mod` entry point. |
 | `fabric` | The `strata` mod jar for Fabric: `common` compiled in, and Strata's jars nested with `include`. |
 | `docs` | The code the documentation shows, compiled against `common` and the vanilla classes so it stays correct. |
@@ -13,15 +13,13 @@ The jars are named `strata-minecraft-<module>`, in the group `org.inspirenxe`. T
 
 ## Showing a screen
 
-A screen is written against Strata's API exactly as it would be for any other engine. `StrataScreen` is a vanilla `Screen` that hosts it, so you open it like any other screen, on the client thread:
+A screen is written against Strata's API exactly as it would be for any other engine, and opened through it too, from any thread:
 
 ```java
-Minecraft.getInstance().gui.setScreen(
-        new StrataScreen(Component.literal("Settings"), new SettingsScreen(),
-                ThemeRef.of(MinecraftThemeSource.VANILLA)));
+Strata.screens().open(new SettingsScreen());
 ```
 
-Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [notes/minecraft.md](notes/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, formatted text, items, item tooltips and player faces, container screens with slots, input, threading, and how the game differs from Strata's Swing adapter.
+The adapter shows it in a `StrataScreen`, a vanilla `Screen` that hosts it, in the vanilla theme, which follows the player's resource packs. Input that Strata does not use goes on to vanilla, so Escape still closes the screen. [notes/minecraft.md](notes/minecraft.md) covers the rest: the lifecycle, units, sprites and nine-slices, the vanilla theme and theme files in resource packs, formatted text, items, item tooltips and player faces, container screens with slots, input, threading, and how the game differs from Strata's Swing adapter.
 
 ## Requirements
 

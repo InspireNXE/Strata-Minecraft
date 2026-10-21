@@ -33,6 +33,7 @@ import org.inspirenxe.strata.api.control.window.Window;
 import org.inspirenxe.strata.api.event.Subscription;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
+import org.inspirenxe.strata.api.screen.ScreenHandle;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
@@ -63,18 +64,53 @@ public final class MinecraftExamples {
 
     static void open() {
         // --8<-- [start:open]
-        Minecraft.getInstance().gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemeSource.VANILLA)));
+        // From a key mapping, a command, a packet handler or any other thread
+        Strata.screens().open(new SettingsScreen());
         // --8<-- [end:open]
     }
 
-    static void openFromAnyThread() {
+    static void openInTheme() {
         // --8<-- [start:thread]
-        // Network handlers and other threads must hop onto the client thread first
-        final Minecraft minecraft = Minecraft.getInstance();
-        minecraft.execute(() -> minecraft.gui.setScreen(
-                new StrataScreen(Component.literal("Settings"), new SettingsScreen(), ThemeRef.of(MinecraftThemeSource.VANILLA))));
+        // The vanilla look with one key changed, for this screen only
+        Strata.screens().open(new SettingsScreen(), ThemeRef.platform()
+                .override(Button.STYLE_NORMAL, Paint.solid(0xFF2E7D32)));
         // --8<-- [end:thread]
+    }
+
+    // --8<-- [start:above]
+    /**
+     * A list whose button opens a details screen above it. Closing the details screen shows the list again, as the
+     * player left it.
+     */
+    public static final class ListScreen implements org.inspirenxe.strata.api.screen.Screen {
+        private ScreenHandle handle;
+
+        @Override
+        public org.inspirenxe.strata.api.component.Component<?> build(final ComponentFactory factory) {
+            return factory.anchorPanel()
+                    .add(factory.button("Details")
+                            .onEvent(Button.PRESSED, event -> this.handle.open(new SettingsScreen()))
+                            .setAnchor(Anchor.CENTER))
+                    .setAnchor(Anchor.FILL);
+        }
+
+        @Override
+        public org.inspirenxe.strata.api.text.Text title() {
+            return org.inspirenxe.strata.api.text.Text.of("Listings");
+        }
+
+        @Override
+        public void opened(final ScreenHandle handle) {
+            this.handle = handle;
+        }
+    }
+    // --8<-- [end:above]
+
+    static void openLive() {
+        // --8<-- [start:live]
+        // A subclass is a vanilla screen like any other; open it on the client thread
+        Minecraft.getInstance().gui.setScreen(new LiveScreen(Component.literal("Settings"), new SettingsScreen()));
+        // --8<-- [end:live]
     }
 
     // --8<-- [start:nopause]
@@ -84,7 +120,7 @@ public final class MinecraftExamples {
     public static final class LiveScreen extends StrataScreen {
 
         public LiveScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content) {
-            super(title, content, ThemeRef.of(MinecraftThemeSource.VANILLA));
+            super(title, content, ThemeRef.platform());
         }
 
         @Override
@@ -96,14 +132,15 @@ public final class MinecraftExamples {
 
     // --8<-- [start:parent]
     /**
-     * A Strata screen that goes back to the screen that opened it, instead of to the game.
+     * A Strata screen that goes back to the vanilla screen that opened it, such as the options screen, instead of to
+     * the game.
      */
     public static final class ChildScreen extends StrataScreen {
         private final net.minecraft.client.gui.screens.Screen parent;
 
         public ChildScreen(final Component title, final org.inspirenxe.strata.api.screen.Screen content,
                            final net.minecraft.client.gui.screens.Screen parent) {
-            super(title, content, ThemeRef.of(MinecraftThemeSource.VANILLA));
+            super(title, content, ThemeRef.platform());
             this.parent = parent;
         }
 
@@ -120,7 +157,7 @@ public final class MinecraftExamples {
         // Reads assets/examplemod/textures/gui/sprites/widget/fancy_button.png from the gui atlas
         final SpriteId fancy = SpriteId.of("examplemod", "widget/fancy_button");
         // Vanilla as resource packs restyle it, with this mod's button on top
-        final ThemeRef theme = ThemeRef.of(MinecraftThemeSource.VANILLA)
+        final ThemeRef theme = ThemeRef.platform()
                 .override(Button.STYLE_NORMAL, Paint.nineSlice(fancy, Insets.of(4f)));
         // --8<-- [end:theme]
         return theme;
@@ -217,7 +254,7 @@ public final class MinecraftExamples {
                                 .add(slots)
                                 .setAnchor(Anchor.CENTER))
                         .setAnchor(Anchor.FILL),
-                ThemeRef.of(MinecraftThemeSource.VANILLA), SlotRendering.STRATA);
+                ThemeRef.platform(), SlotRendering.STRATA);
     }
     // --8<-- [end:container]
 }

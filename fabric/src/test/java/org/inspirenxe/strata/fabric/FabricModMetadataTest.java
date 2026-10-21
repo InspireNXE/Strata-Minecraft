@@ -50,4 +50,11 @@ class FabricModMetadataTest {
         assertTrue(json.contains("\"minecraft\":\"~26.3\""), "it requires Minecraft 26.3");
         assertTrue(json.contains("\"java\":\">=25\""), "it requires Java 25");
     }
+
+    @Test
+    void startsStrataOnTheClient() throws IOException {
+        final String json = metadata().replaceAll("\\s+", "");
+        assertTrue(json.contains("\"client\":[\"org.inspirenxe.strata.fabric.StrataFabric\"]"),
+                "the client entry point hands Strata its screen controller");
+    }
 }

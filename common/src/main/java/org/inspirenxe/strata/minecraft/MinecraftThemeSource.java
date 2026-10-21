@@ -154,6 +154,17 @@ public final class MinecraftThemeSource implements ThemeSource, ResourceManagerR
         return this.cache.computeIfAbsent(id, this::read);
     }
 
+    /**
+     * Returns {@link #VANILLA}, so screens opened without a theme and {@code ThemeRef.platform()} look like the
+     * game.
+     *
+     * @return {@link #VANILLA}
+     */
+    @Override
+    public ThemeId defaultTheme() {
+        return VANILLA;
+    }
+
     @Override
     public long version() {
         return this.version.get();

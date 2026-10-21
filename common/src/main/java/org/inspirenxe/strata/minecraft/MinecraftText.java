@@ -15,7 +15,9 @@
  */
 package org.inspirenxe.strata.minecraft;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSink;
@@ -149,6 +151,23 @@ public final class MinecraftText {
                 .withItalic(style.italic())
                 .withUnderlined(style.underline())
                 .withStrikethrough(style.strikethrough());
+    }
+
+    /**
+     * Turns Strata text into a vanilla component, as it reads now in {@link #DEFAULT_STYLE}, for vanilla's screen
+     * titles. Spans in the default style carry no style, so vanilla draws them as it draws any title; other spans
+     * carry their color and decorations.
+     *
+     * @param text the text
+     * @return the component
+     */
+    static Component component(final Text text) {
+        final MutableComponent result = Component.empty();
+        for (final TextSpan span : text.resolve(DEFAULT_STYLE)) {
+            final MutableComponent part = Component.literal(span.text());
+            result.append(span.style().equals(DEFAULT_STYLE) ? part : part.withStyle(MinecraftText.style(span.style())));
+        }
+        return result;
     }
 
     /**

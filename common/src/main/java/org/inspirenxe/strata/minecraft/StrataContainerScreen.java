@@ -57,10 +57,10 @@ import java.util.Set;
  * <pre>{@code
  * // NeoForge, in RegisterMenuScreensEvent
  * event.register(GRINDER, (menu, inventory, title) -> new StrataContainerScreen<>(menu, inventory, title,
- *         GrinderScreen::build, ThemeRef.of(MinecraftThemeSource.VANILLA)));
+ *         GrinderScreen::build, ThemeRef.platform()));
  * // Fabric, in the client entry point
  * MenuScreens.register(GRINDER, (menu, inventory, title) -> new StrataContainerScreen<>(menu, inventory, title,
- *         GrinderScreen::build, ThemeRef.of(MinecraftThemeSource.VANILLA)));
+ *         GrinderScreen::build, ThemeRef.platform()));
  * }</pre>
  *
  * <p>Everything other code can observe stays vanilla's, so recipe viewers, inventory mods and any server work with
@@ -127,7 +127,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
      * @param inventory the player's inventory, from the same call
      * @param title the title, from the same call; used for narration
      * @param content builds the Strata tree around the slots
-     * @param theme the theme to resolve, for example {@code ThemeRef.of(MinecraftThemeSource.VANILLA)}
+     * @param theme the theme to resolve, for example {@code ThemeRef.platform()}, the vanilla theme
      */
     public StrataContainerScreen(final M menu, final Inventory inventory, final Component title,
                                  final ContainerContent<? super M> content, final ThemeRef theme) {
@@ -143,7 +143,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
      * @param imageWidth the width of the slot area, which the menu's slot positions are relative to
      * @param imageHeight the height of the slot area
      * @param content builds the Strata tree around the slots
-     * @param theme the theme to resolve, for example {@code ThemeRef.of(MinecraftThemeSource.VANILLA)}
+     * @param theme the theme to resolve, for example {@code ThemeRef.platform()}, the vanilla theme
      * @param slotRendering who should draw the slots; the player's settings may turn {@link SlotRendering#STRATA}
      *                      into {@link SlotRendering#VANILLA}
      */
@@ -171,7 +171,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
      * @param imageHeight the height of the slot area
      * @param content builds the Strata tree around the slots
      * @param theme the theme, which resource packs never change; to look like the game and follow packs, pass
-     *              {@code ThemeRef.of(MinecraftThemeSource.VANILLA)} instead
+     *              {@code ThemeRef.platform()} instead
      * @param slotRendering who should draw the slots; the player's settings may turn {@link SlotRendering#STRATA}
      *                      into {@link SlotRendering#VANILLA}
      */

@@ -17,11 +17,18 @@ package org.inspirenxe.strata.neoforge;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
+import org.inspirenxe.strata.minecraft.StrataMinecraft;
 
 /**
- * NeoForge entry point. Strata is a library, so this only marks the jar as the {@code strata} mod; dependent mods
- * open {@code StrataScreen}s themselves.
+ * NeoForge entry point. It marks the jar as the {@code strata} mod and starts Strata-Minecraft when the mod is
+ * constructed, so {@code Strata.screens()} works for dependent mods from then on.
  */
 @Mod(value = "strata", dist = Dist.CLIENT)
 public final class StrataNeoForge {
+    /**
+     * Starts Strata-Minecraft; NeoForge calls this when it constructs the mod.
+     */
+    public StrataNeoForge() {
+        StrataMinecraft.install();
+    }
 }
