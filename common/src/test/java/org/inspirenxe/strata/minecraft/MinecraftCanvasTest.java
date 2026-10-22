@@ -157,6 +157,39 @@ class MinecraftCanvasTest {
     }
 
     @Test
+    void opacityFadesFillsSpritesAndTextUntilPopped() {
+        this.canvas.pushOpacity(0.5f);
+        this.canvas.fill(new Rect(0, 0, 10, 10), 0xFFFF0000);
+        this.canvas.fillGradient(new Rect(0, 0, 10, 10), 0xFF000000, 0x80FFFFFF);
+        this.canvas.sprite(SpriteId.of("minecraft", "widget/button"), new Rect(0, 0, 20, 10), 0xFFFFFFFF);
+        this.canvas.text(new TextSpan("Hi", TextStyle.DEFAULT.withColor(0xFF00FF00)), 0f, 0f);
+        this.canvas.pushOpacity(0.5f);
+        this.canvas.fill(new Rect(0, 0, 5, 5), 0xFF0000FF);
+        this.canvas.popOpacity();
+        this.canvas.popOpacity();
+        this.canvas.fill(new Rect(0, 0, 3, 3), 0xFF00FFFF);
+
+        verify(this.graphics).fill(0, 0, 10, 10, 0x80FF0000);
+        verify(this.graphics).fillGradient(0, 0, 10, 10, 0x80000000, 0x40FFFFFF);
+        verify(this.graphics).blitSprite(RenderPipelines.GUI_TEXTURED,
+                Identifier.fromNamespaceAndPath("minecraft", "widget/button"), 0, 0, 20, 10, 0x80FFFFFF);
+        verify(this.graphics).text(eq(this.font), any(Component.class), eq(0), eq(0), eq(0x8000FF00), eq(false));
+        // Nested factors multiply, and popping restores the one beneath
+        verify(this.graphics).fill(0, 0, 5, 5, 0x400000FF);
+        verify(this.graphics).fill(0, 0, 3, 3, 0xFF00FFFF);
+    }
+
+    @Test
+    void aNewFrameStartsOpaque() {
+        this.canvas.pushOpacity(0.5f);
+        this.canvas.begin(this.graphics);
+
+        this.canvas.fill(new Rect(0, 0, 10, 10), 0xFFFF0000);
+
+        verify(this.graphics).fill(0, 0, 10, 10, 0xFFFF0000);
+    }
+
+    @Test
     void nextLayerStartsANewStratum() {
         this.canvas.nextLayer();
 

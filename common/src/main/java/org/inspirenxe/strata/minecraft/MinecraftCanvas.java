@@ -39,6 +39,7 @@ import org.inspirenxe.strata.minecraft.MinecraftVisuals.ProfileFaceVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.SkinFaceVisual;
 import org.inspirenxe.strata.spi.Canvas;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -69,6 +70,10 @@ import java.util.function.Function;
  *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
  *     visuals draw the face and hat from the skin texture with vanilla's {@code GUI_TEXTURED} pipeline, stretched
  *     over the rectangle snapped to whole pixels and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
+ *     <li>{@link #pushOpacity(float)} multiplies the alpha of every later fill, gradient, text color, sprite and
+ *     nine-slice tint and player face's tint, so a fading component fades with what it draws. Item visuals are
+ *     rendered by the game's item renderer, which takes no color, so items do not fade: they stay opaque until the
+ *     component stops drawing them.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
  *     tooltip, covers earlier layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}: the arrow, I-beam, pointing hand, crosshair, the
@@ -95,6 +100,10 @@ public final class MinecraftCanvas implements Canvas {
     private final Function<ResolvableProfile, PlayerSkin> skins;
     private GuiGraphicsExtractor graphics;
     private float pixelsPerUnit = 1f;
+    // The opacity in force, and the ones pushed beneath it; the array grows, so painting allocates nothing once warm
+    private float opacity = 1f;
+    private float[] opacities = new float[8];
+    private int opacityDepth;
 
     /**
      * Creates a canvas.
@@ -141,6 +150,8 @@ public final class MinecraftCanvas implements Canvas {
         }
         this.graphics = graphics;
         this.pixelsPerUnit = pixelsPerUnit;
+        this.opacity = 1f;
+        this.opacityDepth = 0;
     }
 
     /**
@@ -154,23 +165,26 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void fill(final Rect rect, final int argb) {
-        if ((argb >>> 24) == 0) {
+        final int color = this.faded(argb);
+        if ((color >>> 24) == 0) {
             return;
         }
         if (this.isFine(rect)) {
-            this.fillFine(rect, argb, argb);
+            this.fillFine(rect, color, color);
             return;
         }
-        this.graphics.fill(left(rect), top(rect), right(rect), bottom(rect), argb);
+        this.graphics.fill(left(rect), top(rect), right(rect), bottom(rect), color);
     }
 
     @Override
     public void fillGradient(final Rect rect, final int topArgb, final int bottomArgb) {
+        final int top = this.faded(topArgb);
+        final int bottom = this.faded(bottomArgb);
         if (this.isFine(rect)) {
-            this.fillFine(rect, topArgb, bottomArgb);
+            this.fillFine(rect, top, bottom);
             return;
         }
-        this.graphics.fillGradient(left(rect), top(rect), right(rect), bottom(rect), topArgb, bottomArgb);
+        this.graphics.fillGradient(left(rect), top(rect), right(rect), bottom(rect), top, bottom);
     }
 
     /**
@@ -211,7 +225,7 @@ public final class MinecraftCanvas implements Canvas {
     @Override
     public void sprite(final SpriteId sprite, final Rect rect, final int tint) {
         this.graphics.blitSprite(RenderPipelines.GUI_TEXTURED, this.identifier(sprite),
-                left(rect), top(rect), right(rect) - left(rect), bottom(rect) - top(rect), tint);
+                left(rect), top(rect), right(rect) - left(rect), bottom(rect) - top(rect), this.faded(tint));
     }
 
     @Override
@@ -222,11 +236,12 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void text(final TextSpan span, final float x, final float y) {
-        if ((span.style().color() >>> 24) == 0 || span.text().isEmpty()) {
+        final int color = this.faded(span.style().color());
+        if ((color >>> 24) == 0 || span.text().isEmpty()) {
             return;
         }
         this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x), Math.round(y),
-                span.style().color(), span.style().shadow());
+                color, span.style().shadow());
     }
 
     @Override
@@ -257,13 +272,41 @@ public final class MinecraftCanvas implements Canvas {
     }
 
     @Override
+    public void pushOpacity(final float opacity) {
+        if (this.opacityDepth == this.opacities.length) {
+            this.opacities = Arrays.copyOf(this.opacities, this.opacities.length * 2);
+        }
+        this.opacities[this.opacityDepth++] = this.opacity;
+        this.opacity *= opacity;
+    }
+
+    @Override
+    public void popOpacity() {
+        if (this.opacityDepth > 0) {
+            this.opacity = this.opacities[--this.opacityDepth];
+        }
+    }
+
+    /**
+     * Returns a color with its alpha multiplied by the opacity in force.
+     */
+    private int faded(final int argb) {
+        if (this.opacity >= 1f) {
+            return argb;
+        }
+        final int alpha = Math.round((argb >>> 24) * this.opacity);
+        return (alpha << 24) | (argb & 0xFFFFFF);
+    }
+
+    @Override
     public void visual(final Visual visual, final Rect rect, final int tint) {
         switch (visual) {
             case ItemVisual(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed) ->
                     this.item(stack, decorations, fake, seed, rect, tint);
             case ProfileFaceVisual(final ResolvableProfile profile, final boolean hat) ->
-                    this.playerFace(this.skins.apply(profile), hat, rect, tint);
-            case SkinFaceVisual(final PlayerSkin skin, final boolean hat) -> this.playerFace(skin, hat, rect, tint);
+                    this.playerFace(this.skins.apply(profile), hat, rect, this.faded(tint));
+            case SkinFaceVisual(final PlayerSkin skin, final boolean hat) ->
+                    this.playerFace(skin, hat, rect, this.faded(tint));
             default -> this.fill(rect, MISSING_VISUAL_COLOR);
         }
     }
