@@ -29,6 +29,7 @@ import org.inspirenxe.strata.api.input.KeyAction;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.ScrollKind;
 import org.inspirenxe.strata.api.screen.ScreenHandle;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.ThemeRef;
 import org.inspirenxe.strata.core.StrataCore;
@@ -454,6 +455,26 @@ public class StrataScreen extends Screen {
         @Override
         public void close() {
             StrataScreen.this.requestClose();
+        }
+
+        @Override
+        public boolean requestClose() {
+            return StrataScreen.this.host != null
+                    && StrataScreen.this.host.handle().map(ScreenHandle::requestClose).orElse(false);
+        }
+
+        @Override
+        public boolean isOpen() {
+            return StrataScreen.this.host != null && StrataScreen.this.host.handle().isPresent();
+        }
+
+        @Override
+        public ScreenHandle setTitle(final Text title) {
+            Objects.requireNonNull(title, "title");
+            if (StrataScreen.this.host != null) {
+                StrataScreen.this.host.handle().ifPresent(handle -> handle.setTitle(title));
+            }
+            return this;
         }
 
         @Override
