@@ -40,6 +40,7 @@
     "list.row.ring.unfocused": "#FF808080",
     "list.edge": "#BF000000",
     "list.edge.outer": "#33FFFFFF",
+    "list.drop": "#FFFFFFFF",
     "combobox.normal": { "nine_slice": "minecraft:widget/button", "border": 3 },
     "combobox.hovered": { "nine_slice": "minecraft:widget/button_highlighted", "border": 3 },
     "combobox.disabled": { "nine_slice": "minecraft:widget/button_disabled", "border": 1 },
