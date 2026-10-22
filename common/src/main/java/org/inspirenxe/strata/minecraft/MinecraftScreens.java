@@ -16,12 +16,23 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
+import org.inspirenxe.strata.api.event.cause.CauseStack;
 import org.inspirenxe.strata.api.screen.Screen;
 import org.inspirenxe.strata.api.screen.ScreenController;
 import org.inspirenxe.strata.api.screen.ScreenHandle;
+import org.inspirenxe.strata.api.text.TextMetrics;
 import org.inspirenxe.strata.api.theme.ThemeRef;
+import org.inspirenxe.strata.spi.Capabilities;
+import org.inspirenxe.strata.spi.Clipboard;
+import org.inspirenxe.strata.spi.Clock;
+import org.inspirenxe.strata.spi.Platform;
+import org.inspirenxe.strata.spi.TextInputSink;
+import org.inspirenxe.strata.spi.ThemeSource;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.function.BooleanSupplier;
 
 /**
  * Strata-Minecraft's platform controller, which {@code Strata.screens()} returns once {@link StrataMinecraft#install()}
@@ -34,13 +45,18 @@ import java.util.Objects;
  *     from then on.</li>
  * </ul>
  * <p>{@code open(screen)} uses {@code ThemeRef.platform()}, which {@link MinecraftThemeSource#defaultTheme()} makes
- * {@link MinecraftThemeSource#VANILLA}.</p>
+ * {@link MinecraftThemeSource#VANILLA}. {@link #PLATFORM} is the platform Strata is told these screens are shown on,
+ * so {@code Strata.uiThread()} is the client thread.</p>
  */
 final class MinecraftScreens implements ScreenController {
     /**
      * The one controller.
      */
     static final MinecraftScreens INSTANCE = new MinecraftScreens();
+    /**
+     * The platform handed to Strata with the controller, whose UI thread {@code Strata.uiThread()} returns.
+     */
+    static final Platform PLATFORM = new ClientThread();
 
     private MinecraftScreens() {
     }
@@ -73,6 +89,71 @@ final class MinecraftScreens implements ScreenController {
             current.stack(opened);
         } else {
             StrataScreen.switcher.set(minecraft, opened);
+        }
+    }
+
+    /**
+     * The client thread as a platform, for {@code Strata.uiThread()}. Core reads only its UI thread, the executor and
+     * the test, which find the game when they are used, since mods are constructed before the game has a font or a
+     * screen. Screens get a {@link MinecraftPlatform} of their own, which answers the same way.
+     */
+    private static final class ClientThread implements Platform {
+        private static final String SCREENS_ONLY = "This platform only names the client thread; screens use their own";
+
+        @Override
+        public Optional<Executor> uiExecutor() {
+            return Optional.of(task -> MinecraftPlatform.uiExecutor(ClientThread.game()).execute(task));
+        }
+
+        @Override
+        public Optional<BooleanSupplier> uiThreadCheck() {
+            return Optional.of(() -> {
+                final Minecraft minecraft = Minecraft.getInstance();
+                return minecraft != null && minecraft.isSameThread();
+            });
+        }
+
+        @Override
+        public Optional<CauseStack> causes() {
+            return StrataMinecraft.causes();
+        }
+
+        @Override
+        public TextMetrics textMetrics() {
+            throw new UnsupportedOperationException(SCREENS_ONLY);
+        }
+
+        @Override
+        public Clipboard clipboard() {
+            throw new UnsupportedOperationException(SCREENS_ONLY);
+        }
+
+        @Override
+        public Clock clock() {
+            return Clock.SYSTEM;
+        }
+
+        @Override
+        public TextInputSink textInput() {
+            throw new UnsupportedOperationException(SCREENS_ONLY);
+        }
+
+        @Override
+        public Capabilities capabilities() {
+            throw new UnsupportedOperationException(SCREENS_ONLY);
+        }
+
+        @Override
+        public ThemeSource themes() {
+            return MinecraftThemeSource.get(ClientThread.game());
+        }
+
+        private static Minecraft game() {
+            final Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft == null) {
+                throw new IllegalStateException("Tasks cannot be handed to the client thread before the game has started");
+            }
+            return minecraft;
         }
     }
 }

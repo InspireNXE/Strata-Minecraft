@@ -28,6 +28,8 @@ import org.inspirenxe.strata.spi.TextInputSink;
 import org.inspirenxe.strata.spi.ThemeSource;
 
 import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.function.BooleanSupplier;
 
 /**
  * The Minecraft {@link Platform}, one per hosting vanilla screen.
@@ -50,6 +52,9 @@ import java.util.Optional;
  *     Strata's own when it was started without one.</li>
  *     <li>The user is the local player's profile, vanilla's {@code Minecraft.getGameProfile()}, so every
  *     {@code Origin.User} carries a {@code GameProfile}.</li>
+ *     <li>The UI thread is the client thread, the game's render thread. Tasks handed to it are queued on the game's
+ *     own task queue, which the client runs between frames, even when they are handed over from the client thread,
+ *     and {@code Minecraft.isSameThread()} tells whether a caller is on it.</li>
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
@@ -151,5 +156,27 @@ public final class MinecraftPlatform implements Platform {
     @Override
     public Optional<Object> user() {
         return Optional.ofNullable(this.minecraft.getGameProfile());
+    }
+
+    @Override
+    public Optional<Executor> uiExecutor() {
+        return Optional.of(MinecraftPlatform.uiExecutor(this.minecraft));
+    }
+
+    @Override
+    public Optional<BooleanSupplier> uiThreadCheck() {
+        return Optional.of(this.minecraft::isSameThread);
+    }
+
+    /**
+     * Returns an executor that queues tasks on the game's task queue, which the client thread runs between frames.
+     * Vanilla's own {@code execute} runs a task at once when called on the client thread, and Strata needs it run
+     * after the current call returns, so this schedules it in every case.
+     *
+     * @param minecraft the game
+     * @return the executor
+     */
+    static Executor uiExecutor(final Minecraft minecraft) {
+        return minecraft::schedule;
     }
 }
