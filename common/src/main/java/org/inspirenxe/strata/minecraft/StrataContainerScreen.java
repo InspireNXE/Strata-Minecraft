@@ -83,7 +83,11 @@ import java.util.Set;
  *     leaves a slot, and drops a slot that stops accepting a dragged stack from the drag, drawing the carried
  *     stack's new count itself.</li>
  *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is dimmed
- *     with vanilla's gradient, as for any container screen, and the game does not pause.</li>
+ *     with vanilla's gradient, as for any container screen, and the game does not pause. The title vanilla narrates
+ *     is the one given to the constructor until the Strata screen sets another with {@code ScreenHandle.setTitle}.</li>
+ *     <li>Escape, the inventory key and any other call to {@link #onClose()} first ask the Strata screen through
+ *     its {@code closeRequested}, and close nothing when it refuses. Closing through the Strata screen's handle
+ *     does not ask, and neither does a server closing the menu.</li>
  * </ul>
  *
  * <p>If the tree does not hold the panel, or holds it inside a {@link ScrollPanel}, the screen throws
@@ -119,6 +123,11 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     private boolean drawingCarried;
     private boolean recounted;
     private int carriedRemainder;
+    private final HostTitle hostTitle = new HostTitle(false);
+    /**
+     * Set while a close the Strata screen agreed to, or made through its handle, runs {@link #onClose()}.
+     */
+    private boolean closing;
 
     /**
      * Creates the screen for a menu of vanilla's default size, 176 by 166, with vanilla drawing the slots.
@@ -210,17 +219,53 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             this.canvas = new MinecraftCanvas(this.font);
             final MinecraftPlatform platform = new MinecraftPlatform(this.minecraft, this.canvas.textMetrics(), this);
             this.host = this.themeRef != null
-                    ? StrataCore.createScreenHost(platform, this.themeRef, this::onClose)
-                    : StrataCore.createScreenHost(platform, this.theme, this::onClose);
+                    ? StrataCore.createScreenHost(platform, this.themeRef, this::closeAgreed)
+                    : StrataCore.createScreenHost(platform, this.theme, this::closeAgreed);
             this.host.resize(this.width, this.height);
             this.host.open(factory -> {
                 this.panel = new MenuPanel(factory, this.owner);
                 return this.content.build(factory, this.menu, this.panel);
             });
+            this.hostTitle.opened(this.host);
         } else {
             this.host.resize(this.width, this.height);
         }
         this.placeMenu(true);
+    }
+
+    /**
+     * Returns the title vanilla narrates: the one given to the constructor, until the Strata screen sets another
+     * with {@code ScreenHandle.setTitle}, which then follows the game's language.
+     *
+     * @return the title
+     */
+    @Override
+    public Component getTitle() {
+        return this.hostTitle.get(this.host, super.getTitle());
+    }
+
+    /**
+     * Closes the menu as vanilla does, once the Strata screen agrees: unless it already agreed or closed itself
+     * through its handle, it is asked first through its {@code closeRequested}, and nothing closes when it refuses.
+     */
+    @Override
+    public void onClose() {
+        if (!this.closing && this.host != null && !this.host.requestClose()) {
+            return;
+        }
+        super.onClose();
+    }
+
+    /**
+     * Runs {@link #onClose()} for a close that needs no asking: the Strata screen's handle closed it, or it agreed.
+     */
+    private void closeAgreed() {
+        this.closing = true;
+        try {
+            this.onClose();
+        } finally {
+            this.closing = false;
+        }
     }
 
     @Override

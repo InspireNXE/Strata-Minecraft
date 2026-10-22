@@ -62,7 +62,15 @@ import java.util.Objects;
  *     <li>One UI unit is one GUI pixel, so layouts follow the player's GUI scale. The host is resized whenever
  *     vanilla re-initializes the screen, such as on a window resize.</li>
  *     <li>The Strata screen is built when the vanilla screen first opens, and closed when vanilla removes it. A
- *     Strata screen that asks to close gets vanilla's {@link #onClose()}.</li>
+ *     Strata screen that closes through its handle gets vanilla's {@link #onClose()}.</li>
+ *     <li>Escape that Strata does not use, while {@link #shouldCloseOnEsc()} is true, and any other call to
+ *     {@link #onClose()} first ask the Strata screen through its {@code closeRequested}, and close nothing when it
+ *     refuses. A subclass that overrides {@link #onClose()} keeps that for Escape; when other code calls it, the
+ *     asking happens where the override calls {@code super.onClose()}. Closes the game makes for its own reasons,
+ *     such as another screen replacing this one or a disconnect, never ask.</li>
+ *     <li>The title vanilla shows and narrates is the Strata screen's: {@link #getTitle()} follows
+ *     {@code ScreenHandle.setTitle} and the game's language. A screen constructed with a vanilla title shows that
+ *     title until the Strata screen sets another.</li>
  *     <li>A screen opened from the Strata screen's handle, or with {@code Strata.screens()} while this screen shows,
  *     opens above it in a new {@code StrataScreen}. This screen keeps its tree, focus and state while it waits, and
  *     {@link #onClose()} on the one above shows this one again. If vanilla replaces the screen above with anything
@@ -71,7 +79,7 @@ import java.util.Objects;
  *     {@code Strata.screens()}.</li>
  *     <li>{@link #onClose()} returns to the screen this one was opened above, or else to the game, as vanilla's
  *     does. Override it to return somewhere else.</li>
- *     <li>Input Strata does not consume goes on to vanilla, so Escape still closes the screen.</li>
+ *     <li>Input Strata does not consume goes on to vanilla.</li>
  *     <li>Minecraft reports held keys as repeated presses; this screen turns them into repeats.</li>
  *     <li>Strata counts clicks itself and ignores vanilla's double-click flag.</li>
  *     <li>Scroll amounts already include the player's wheel sensitivity. Fractional amounts count as
@@ -93,6 +101,7 @@ public class StrataScreen extends Screen {
     private final ThemeRef themeRef;
     private final HeldKeys heldKeys;
     private final ScreenHandle handle;
+    private HostTitle hostTitle;
     private MinecraftCanvas canvas;
     private ScreenHost host;
     /**
@@ -107,6 +116,11 @@ public class StrataScreen extends Screen {
      * Set while this screen closes back to its parent, so that removing it keeps the parent open.
      */
     private boolean returning;
+    /**
+     * Set while a close the Strata screen agreed to, or made through its handle, runs {@link #onClose()}, which then
+     * does not ask again.
+     */
+    private boolean closing;
 
     /**
      * Creates the vanilla screen. Nothing is built until Minecraft opens it.
@@ -123,6 +137,7 @@ public class StrataScreen extends Screen {
         this.themeRef = null;
         this.heldKeys = new HeldKeys();
         this.handle = new Handle();
+        this.hostTitle = new HostTitle(false);
     }
 
     /**
@@ -141,6 +156,7 @@ public class StrataScreen extends Screen {
         this.themeRef = Objects.requireNonNull(theme, "theme");
         this.heldKeys = new HeldKeys();
         this.handle = new Handle();
+        this.hostTitle = new HostTitle(false);
     }
 
     /**
@@ -154,6 +170,7 @@ public class StrataScreen extends Screen {
         this.themeRef = Objects.requireNonNull(theme, "theme");
         this.heldKeys = new HeldKeys();
         this.handle = new Handle();
+        this.hostTitle = new HostTitle(false);
     }
 
     /**
@@ -167,7 +184,11 @@ public class StrataScreen extends Screen {
      */
     static StrataScreen of(final Minecraft minecraft, final Font font,
                            final org.inspirenxe.strata.api.screen.Screen content, final ThemeRef theme) {
-        return new StrataScreen(minecraft, font, MinecraftText.component(content.title()), content, theme);
+        final StrataScreen screen = new StrataScreen(minecraft, font, MinecraftText.component(content.title()), content,
+                theme);
+        // The vanilla title was made from the Strata screen's, so the host's title stands for it from the start
+        screen.hostTitle = new HostTitle(true);
+        return screen;
     }
 
     /**
@@ -214,8 +235,8 @@ public class StrataScreen extends Screen {
             this.canvas = new MinecraftCanvas(this.font);
             final MinecraftPlatform platform = new MinecraftPlatform(this.minecraft, this.canvas.textMetrics(), this);
             this.host = this.themeRef != null
-                    ? StrataCore.createScreenHost(platform, this.themeRef, this::requestClose)
-                    : StrataCore.createScreenHost(platform, this.theme, this::requestClose);
+                    ? StrataCore.createScreenHost(platform, this.themeRef, this::closeFromHandle)
+                    : StrataCore.createScreenHost(platform, this.theme, this::closeFromHandle);
             this.host.setOpener(this::openAbove);
         }
         return this.host;
@@ -238,7 +259,21 @@ public class StrataScreen extends Screen {
         current.resize(this.width, this.height);
         if (current.screen().isEmpty()) {
             current.open(this.content);
+            this.hostTitle.opened(current);
         }
+    }
+
+    /**
+     * Returns the title vanilla shows and narrates: the Strata screen's title as it is now, after any
+     * {@code ScreenHandle.setTitle}, in the game's current language. A screen constructed with a vanilla title returns
+     * that title until the Strata screen sets another, and every screen returns its vanilla title while the Strata
+     * screen is not open.
+     *
+     * @return the title
+     */
+    @Override
+    public Component getTitle() {
+        return this.hostTitle.get(this.host, super.getTitle());
     }
 
     @Override
@@ -260,10 +295,16 @@ public class StrataScreen extends Screen {
     }
 
     /**
-     * Shows the screen this one was opened above, or else returns to the game as vanilla does.
+     * Shows the screen this one was opened above, or else returns to the game as vanilla does. Unless the Strata
+     * screen already agreed or closed itself through its handle, it is asked first through its
+     * {@code closeRequested}, and nothing closes when it refuses.
      */
     @Override
     public void onClose() {
+        if (!this.closing) {
+            this.askToClose();
+            return;
+        }
         if (this.parent != null) {
             this.returning = true;
             switcher.set(this.minecraft, this.parent);
@@ -297,13 +338,36 @@ public class StrataScreen extends Screen {
     }
 
     /**
-     * Closes the Strata screen, however it is shown: through {@link #onClose()} when it shows, together with the
-     * screens above it when it waits beneath them, and quietly otherwise.
+     * Asks the Strata screen whether it may close, and closes this screen through {@link #onClose()} when it agrees.
+     * The host closes the Strata screen itself when it agrees.
      */
-    private void requestClose() {
+    private void askToClose() {
+        if (this.host == null || this.host.requestClose()) {
+            this.closeAgreed();
+        }
+    }
+
+    /**
+     * Runs {@link #onClose()} for a close that needs no asking.
+     */
+    private void closeAgreed() {
+        this.closing = true;
+        try {
+            this.onClose();
+        } finally {
+            this.closing = false;
+        }
+    }
+
+    /**
+     * Closes the Strata screen without asking, for its handle's {@code close()} and a {@code requestClose()} it
+     * agreed to, however it is shown: through {@link #onClose()} when it shows, together with the screens above it
+     * when it waits beneath them, and quietly otherwise.
+     */
+    private void closeFromHandle() {
         final Screen shown = switcher.current(this.minecraft);
         if (shown == this) {
-            this.onClose();
+            this.closeAgreed();
             return;
         }
         if (this.child == null) {
@@ -325,7 +389,7 @@ public class StrataScreen extends Screen {
         }
         top.parent = this.parent;
         if (shown == top) {
-            top.onClose();
+            top.closeAgreed();
         } else {
             top.closeHost();
             if (top.parent != null) {
@@ -389,7 +453,15 @@ public class StrataScreen extends Screen {
         final Key key = MinecraftInput.key(event.key());
         // Minecraft sends presses and repeats through the same method
         final KeyAction action = this.heldKeys.press(key);
-        return this.host.key(key, action, MinecraftInput.modifiers(event)) || super.keyPressed(event);
+        if (this.host.key(key, action, MinecraftInput.modifiers(event))) {
+            return true;
+        }
+        if (event.isEscape() && this.shouldCloseOnEsc()) {
+            // Asked here rather than in onClose, so a subclass's own onClose still waits for the answer
+            this.askToClose();
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     @Override
@@ -454,7 +526,7 @@ public class StrataScreen extends Screen {
 
         @Override
         public void close() {
-            StrataScreen.this.requestClose();
+            StrataScreen.this.closeFromHandle();
         }
 
         @Override

@@ -15,9 +15,11 @@
  */
 package org.inspirenxe.strata.minecraft;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.inspirenxe.strata.api.ComponentFactory;
@@ -117,6 +119,85 @@ class StrataScreenStackTest {
         first.handle.open(titled);
 
         assertEquals("Exchange", this.gui.current.getTitle().getString());
+    }
+
+    @Test
+    void escapeAsksTheScreenBeforeClosingIt() {
+        final Counting first = new Counting();
+        final StrataScreen root = this.show(first);
+        final Counting second = new Counting();
+        second.refuse = true;
+        first.handle.open(second);
+        final StrataScreen above = (StrataScreen) this.gui.current;
+
+        assertTrue(this.escape(above));
+
+        assertSame(above, this.gui.current);
+        assertTrue(above.isOpen());
+        assertEquals(1, second.asks);
+        assertEquals(0, second.closes);
+
+        second.refuse = false;
+        assertTrue(this.escape(above));
+
+        assertSame(root, this.gui.current);
+        assertEquals(2, second.asks);
+        assertEquals(1, second.closes);
+        assertEquals(0, first.asks);
+    }
+
+    @Test
+    void onCloseAsksButTheHandlesCloseDoesNot() {
+        final Counting first = new Counting();
+        final StrataScreen root = this.show(first);
+        final Counting second = new Counting();
+        second.refuse = true;
+        first.handle.open(second);
+        final StrataScreen above = (StrataScreen) this.gui.current;
+
+        above.onClose();
+
+        assertSame(above, this.gui.current);
+        assertEquals(1, second.asks);
+
+        second.handle.close();
+
+        assertSame(root, this.gui.current);
+        assertEquals(1, second.asks);
+        assertEquals(1, second.closes);
+    }
+
+    @Test
+    void theHandlesRequestCloseAsksAndClosesTheVanillaScreen() {
+        final Counting first = new Counting();
+        final StrataScreen root = this.show(first);
+        final Counting second = new Counting();
+        second.refuse = true;
+        final ScreenHandle opened = first.handle.open(second);
+
+        assertFalse(opened.requestClose());
+        assertTrue(opened.isOpen());
+
+        second.refuse = false;
+        assertTrue(opened.requestClose());
+
+        assertSame(root, this.gui.current);
+        assertFalse(opened.isOpen());
+        assertEquals(2, second.asks);
+        assertEquals(1, second.closes);
+    }
+
+    @Test
+    void theVanillaTitleFollowsSetTitle() {
+        final Counting first = new Counting();
+        final StrataScreen root = this.show(first);
+
+        assertEquals("Root", root.getTitle().getString());
+
+        first.handle.setTitle(Text.of("Renamed"));
+
+        assertEquals("Renamed", root.getTitle().getString());
+        assertEquals("Renamed", root.getNarrationMessage().getString());
     }
 
     @Test
@@ -229,6 +310,18 @@ class StrataScreenStackTest {
     }
 
     /**
+     * Presses and releases Escape on a screen.
+     */
+    private boolean escape(final StrataScreen screen) {
+        final KeyEvent event = new KeyEvent(InputConstants.KEY_ESCAPE, 0, 0);
+        final boolean used = screen.keyPressed(event);
+        if (this.gui.current == screen) {
+            screen.keyReleased(event);
+        }
+        return used;
+    }
+
+    /**
      * Plays vanilla's {@code setScreen}: removes the old screen, then sizes and initializes the new one.
      */
     private static final class FakeGui implements StrataScreen.Switcher {
@@ -254,7 +347,7 @@ class StrataScreenStackTest {
     }
 
     /**
-     * A screen that keeps its handle and counts its builds and closes.
+     * A screen that keeps its handle, counts its builds, closes and requests to close, and refuses them when told.
      */
     private static final class Counting implements org.inspirenxe.strata.api.screen.Screen {
         private final List<Object> built = new ArrayList<>();
@@ -262,6 +355,8 @@ class StrataScreenStackTest {
         private Text title = Text.empty();
         private int builds;
         private int closes;
+        private int asks;
+        private boolean refuse;
 
         @Override
         public org.inspirenxe.strata.api.component.Component<?> build(final ComponentFactory factory) {
@@ -279,6 +374,12 @@ class StrataScreenStackTest {
         @Override
         public void opened(final ScreenHandle handle) {
             this.handle = handle;
+        }
+
+        @Override
+        public boolean closeRequested(final ScreenHandle handle) {
+            this.asks++;
+            return !this.refuse;
         }
 
         @Override
