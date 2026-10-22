@@ -569,6 +569,8 @@ public final class MinecraftCanvas implements Canvas {
             case RESIZE_VERTICAL -> GLFW.GLFW_RESIZE_NS_CURSOR;
             case RESIZE_ALL -> GLFW.GLFW_RESIZE_ALL_CURSOR;
             case NOT_ALLOWED -> GLFW.GLFW_NOT_ALLOWED_CURSOR;
+            // Kinds with no mapping yet show their fallback
+            default -> cursorShape(cursor.fallback());
         };
     }
 

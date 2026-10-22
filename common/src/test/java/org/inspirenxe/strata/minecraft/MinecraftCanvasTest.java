@@ -318,7 +318,12 @@ class MinecraftCanvasTest {
         assertEquals(GLFW.GLFW_POINTING_HAND_CURSOR, MinecraftCanvas.cursorShape(CursorKind.HAND));
         final Set<Integer> shapes = new HashSet<>();
         for (final CursorKind kind : CursorKind.values()) {
-            assertTrue(shapes.add(MinecraftCanvas.cursorShape(kind)), kind + " has a shape of its own");
+            if (this.canvas.showsCursor(kind)) {
+                assertTrue(shapes.add(MinecraftCanvas.cursorShape(kind)), kind + " has a shape of its own");
+            } else {
+                assertEquals(MinecraftCanvas.cursorShape(kind.fallback()), MinecraftCanvas.cursorShape(kind),
+                        kind + " shows its fallback");
+            }
         }
     }
 
