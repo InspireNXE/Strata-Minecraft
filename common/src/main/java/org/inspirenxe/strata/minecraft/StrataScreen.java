@@ -84,8 +84,10 @@ import java.util.Objects;
  *     <li>Strata counts clicks itself and ignores vanilla's double-click flag.</li>
  *     <li>Scroll amounts already include the player's wheel sensitivity. Fractional amounts count as
  *     {@link ScrollKind#PRECISE}.</li>
- *     <li>Minecraft gives no modifiers with pointer moves, scrolls or typed characters, so those report
- *     {@link Modifiers#NONE}.</li>
+ *     <li>Minecraft gives no modifiers with pointer moves, scrolls or typed characters. Moves and scrolls report
+ *     the Shift, Control and Alt keys held at the time, read from the game, so a Shift+wheel scrolls sideways.
+ *     Typed characters report {@link Modifiers#NONE}, since some layouts type characters with Control and Alt
+ *     held.</li>
  *     <li>Whether the game pauses behind the screen follows vanilla's {@link #isPauseScreen()}; override it to
  *     change that.</li>
  * </ul>
@@ -426,7 +428,7 @@ public class StrataScreen extends Screen {
 
     @Override
     public void mouseMoved(final double x, final double y) {
-        this.host.pointerMoved((float) x, (float) y, Modifiers.NONE);
+        this.host.pointerMoved((float) x, (float) y, MinecraftInput.held(this.minecraft));
     }
 
     @Override
@@ -444,7 +446,7 @@ public class StrataScreen extends Screen {
     @Override
     public boolean mouseScrolled(final double x, final double y, final double scrollX, final double scrollY) {
         return this.host.scroll((float) x, (float) y, MinecraftInput.scrollX(scrollX), (float) scrollY,
-                MinecraftInput.scrollKind(scrollX, scrollY), Modifiers.NONE)
+                MinecraftInput.scrollKind(scrollX, scrollY), MinecraftInput.held(this.minecraft))
                 || super.mouseScrolled(x, y, scrollX, scrollY);
     }
 

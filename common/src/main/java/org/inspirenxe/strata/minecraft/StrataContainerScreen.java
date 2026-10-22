@@ -366,7 +366,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
     @Override
     public void mouseMoved(final double x, final double y) {
-        this.host.pointerMoved((float) x, (float) y, Modifiers.NONE);
+        this.host.pointerMoved((float) x, (float) y, MinecraftInput.held(this.minecraft));
     }
 
     @Override
@@ -415,7 +415,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             return true;
         }
         return this.host.scroll((float) x, (float) y, MinecraftInput.scrollX(scrollX), (float) scrollY,
-                MinecraftInput.scrollKind(scrollX, scrollY), Modifiers.NONE);
+                MinecraftInput.scrollKind(scrollX, scrollY), MinecraftInput.held(this.minecraft));
     }
 
     @Override

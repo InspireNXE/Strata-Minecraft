@@ -17,8 +17,10 @@ package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.InputQuirks;
 import org.inspirenxe.strata.api.event.cause.CauseStack;
 import org.inspirenxe.strata.api.geometry.Rect;
+import org.inspirenxe.strata.api.input.Modifier;
 import org.inspirenxe.strata.spi.Capabilities;
 import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
@@ -46,7 +48,9 @@ import java.util.function.BooleanSupplier;
  *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
  *     {@link Capabilities#slicesSprites()} is true and sized and tiled paints reach the canvas whole.</li>
  *     <li>Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down, so
- *     {@link Conventions#activateOnPress()} is true.</li>
+ *     {@link Conventions#activateOnPress()} is true. The shortcut modifier is the one vanilla's own edit shortcuts
+ *     use: Command ({@link Modifier#SUPER}) on macOS and Control elsewhere. Mnemonics are on: vanilla binds nothing
+ *     to Alt, so Alt with a letter and Alt alone reach Strata's menus and buttons.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
  *     <li>The cause stack is the one {@link StrataMinecraft#install(CauseStack)} was given, such as Sponge's, or
  *     Strata's own when it was started without one.</li>
@@ -59,8 +63,10 @@ import java.util.function.BooleanSupplier;
  */
 public final class MinecraftPlatform implements Platform {
     private static final Capabilities CAPABILITIES = new Capabilities(true, false, true);
-    // Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down
-    private static final Conventions CONVENTIONS = new Conventions(true);
+    // Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down, and its edit
+    // shortcuts take Command on macOS
+    private static final Conventions CONVENTIONS = new Conventions(true,
+            InputQuirks.REPLACE_CTRL_KEY_WITH_CMD_KEY ? Modifier.SUPER : Modifier.CONTROL, true);
 
     private final Minecraft minecraft;
     private final MinecraftTextMetrics textMetrics;

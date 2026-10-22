@@ -16,12 +16,14 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.InputWithModifiers;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.Modifier;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
 import org.inspirenxe.strata.api.input.ScrollKind;
+import org.lwjgl.sdl.SDLScancode;
 
 /**
  * Maps Minecraft 26.3 input to Strata's input types.
@@ -30,9 +32,12 @@ import org.inspirenxe.strata.api.input.ScrollKind;
  * through the {@link InputConstants} names and never through raw numbers. Scancodes Strata has no key for (F13 to
  * F24, the keypad comma) map to {@link Key#UNKNOWN}.</p>
  *
- * <p>On macOS Minecraft treats Command as the edit-shortcut modifier. Strata reports Command as
- * {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}, so Strata's text box shortcuts use Control there
- * too.</p>
+ * <p>The context menu key maps to {@link Key#MENU}. Minecraft names no scancode for it, so it is matched by SDL's own
+ * names, {@code SDL_SCANCODE_APPLICATION} and {@code SDL_SCANCODE_MENU}.</p>
+ *
+ * <p>Strata reports Command as {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}. On macOS, where
+ * Minecraft uses Command for its own edit shortcuts, {@link MinecraftPlatform} makes {@code SUPER} the shortcut
+ * modifier, so Strata's text fields and shortcuts use Command there too.</p>
  */
 public final class MinecraftInput {
 
@@ -58,6 +63,28 @@ public final class MinecraftInput {
         }
         if ((input.modifiers() & InputConstants.MOD_SUPER) != 0) {
             modifiers = modifiers.with(Modifier.SUPER);
+        }
+        return modifiers;
+    }
+
+    /**
+     * Reads the Shift, Control and Alt keys held now, for input Minecraft reports without modifiers: pointer moves
+     * and scrolls. It asks the game's own {@code hasShiftDown}, {@code hasControlDown} and {@code hasAltDown}, which
+     * read the keyboard's state; Super is not read.
+     *
+     * @param minecraft the game
+     * @return the held modifiers
+     */
+    public static Modifiers held(final Minecraft minecraft) {
+        Modifiers modifiers = Modifiers.NONE;
+        if (minecraft.hasShiftDown()) {
+            modifiers = modifiers.with(Modifier.SHIFT);
+        }
+        if (minecraft.hasControlDown()) {
+            modifiers = modifiers.with(Modifier.CONTROL);
+        }
+        if (minecraft.hasAltDown()) {
+            modifiers = modifiers.with(Modifier.ALT);
         }
         return modifiers;
     }
@@ -211,6 +238,8 @@ public final class MinecraftInput {
             case InputConstants.KEY_RALT -> Key.RIGHT_ALT;
             case InputConstants.KEY_LGUI -> Key.LEFT_SUPER;
             case InputConstants.KEY_RGUI -> Key.RIGHT_SUPER;
+            // Minecraft names no scancode for the context menu key
+            case SDLScancode.SDL_SCANCODE_APPLICATION, SDLScancode.SDL_SCANCODE_MENU -> Key.MENU;
             default -> Key.UNKNOWN;
         };
     }

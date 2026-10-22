@@ -16,12 +16,14 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
 import org.inspirenxe.strata.api.input.ScrollKind;
 import org.junit.jupiter.api.Test;
+import org.lwjgl.sdl.SDLScancode;
 
 import java.lang.reflect.Field;
 import java.util.EnumMap;
@@ -36,6 +38,8 @@ import static org.inspirenxe.strata.api.input.Modifier.ALT;
 import static org.inspirenxe.strata.api.input.Modifier.CONTROL;
 import static org.inspirenxe.strata.api.input.Modifier.SHIFT;
 import static org.inspirenxe.strata.api.input.Modifier.SUPER;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Checks the Minecraft input mapping against the real 26.3 {@link InputConstants}, so a renumbering or a new key
@@ -80,6 +84,25 @@ class MinecraftInputTest {
         assertEquals(Key.ESCAPE, MinecraftInput.key(InputConstants.KEY_ESCAPE));
         assertEquals(Key.LEFT_SUPER, MinecraftInput.key(InputConstants.KEY_LGUI));
         assertEquals(Key.UNKNOWN, MinecraftInput.key(-1));
+    }
+
+    @Test
+    void theContextMenuKeyIsTheMenuKey() {
+        assertEquals(Key.MENU, MinecraftInput.key(SDLScancode.SDL_SCANCODE_APPLICATION));
+        assertEquals(Key.MENU, MinecraftInput.key(SDLScancode.SDL_SCANCODE_MENU));
+    }
+
+    @Test
+    void heldModifiersComeFromTheGame() {
+        final Minecraft minecraft = mock(Minecraft.class);
+        assertEquals(Modifiers.NONE, MinecraftInput.held(minecraft));
+
+        when(minecraft.hasShiftDown()).thenReturn(true);
+        when(minecraft.hasAltDown()).thenReturn(true);
+        assertEquals(Modifiers.of(SHIFT, ALT), MinecraftInput.held(minecraft));
+
+        when(minecraft.hasControlDown()).thenReturn(true);
+        assertEquals(Modifiers.of(SHIFT, CONTROL, ALT), MinecraftInput.held(minecraft));
     }
 
     @Test
