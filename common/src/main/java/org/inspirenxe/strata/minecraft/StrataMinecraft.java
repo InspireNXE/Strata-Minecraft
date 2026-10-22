@@ -37,7 +37,7 @@ public final class StrataMinecraft {
 
     /**
      * Hands Strata-Minecraft's screen controller to Strata, so {@code Strata.screens()} opens screens as
-     * {@link StrataScreen}s, and checks that Strata's core is found the way mods reach it. Only the first call does
+     * {@link StrataScreen}s and {@code Strata.uiThread()} is the client thread, and checks that Strata's core is found the way mods reach it. Only the first call does
      * anything. A core that cannot be found is logged, not thrown, so the game still starts and the error shows
      * where a mod first asks for Strata.
      */
@@ -76,7 +76,7 @@ public final class StrataMinecraft {
     }
 
     private static void start() {
-        StrataCore.setScreenController(MinecraftScreens.INSTANCE);
+        StrataCore.setScreenController(MinecraftScreens.INSTANCE, MinecraftScreens.PLATFORM);
         try {
             if (Strata.screens() != MinecraftScreens.INSTANCE) {
                 LOGGER.log(System.Logger.Level.ERROR, "Strata's core answered with another screen controller;"

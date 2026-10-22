@@ -62,6 +62,8 @@ class StrataScreenStackTest {
     void setUp() {
         this.minecraft = mock(Minecraft.class);
         when(this.minecraft.getResourceManager()).thenReturn(mock(ResourceManager.class));
+        // The tests play the client thread
+        when(this.minecraft.isSameThread()).thenReturn(true);
         this.font = mock(Font.class);
         this.gui = new FakeGui();
         StrataScreen.switcher = this.gui;
@@ -202,6 +204,9 @@ class StrataScreenStackTest {
         StrataMinecraft.install();
 
         assertSame(MinecraftScreens.INSTANCE, Strata.screens());
+        // Strata.uiThread() is the client thread, and there is no game in a test
+        assertFalse(Strata.uiThread().isCurrent());
+        assertThrows(IllegalStateException.class, () -> Strata.uiThread().checkCurrent());
     }
 
     @Test
