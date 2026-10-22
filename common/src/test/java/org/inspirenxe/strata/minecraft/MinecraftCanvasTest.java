@@ -95,6 +95,31 @@ class MinecraftCanvasTest {
     }
 
     @Test
+    void fillsThinnerThanAGuiPixelSnapToDevicePixels() {
+        this.canvas.begin(this.graphics, 3f);
+
+        // A hairline one device pixel high, which whole GUI pixels would lose
+        this.canvas.fill(new Rect(1f, 2f + 1f / 3f, 10f, 1f / 3f), 0xFFFF0000);
+
+        verify(this.graphics).fill(3, 7, 33, 8, 0xFFFF0000);
+        // The pose was scaled down to device pixels for the fill, then restored
+        assertEquals(new Matrix3x2f(), this.pose);
+
+        // A fill a GUI pixel or more each way still snaps to GUI pixels
+        this.canvas.fill(new Rect(1.5f, 2.5f, 3f, 3f), 0xFF00FF00);
+        verify(this.graphics).fill(1, 2, 4, 5, 0xFF00FF00);
+    }
+
+    @Test
+    void thinGradientsSnapToDevicePixels() {
+        this.canvas.begin(this.graphics, 2f);
+
+        this.canvas.fillGradient(new Rect(0.5f, 0f, 0.5f, 4f), 0xFF000000, 0xFFFFFFFF);
+
+        verify(this.graphics).fillGradient(1, 0, 2, 8, 0xFF000000, 0xFFFFFFFF);
+    }
+
+    @Test
     void transparentFillsAreSkipped() {
         this.canvas.fill(new Rect(0, 0, 10, 10), 0x00FFFFFF);
 
@@ -188,6 +213,13 @@ class MinecraftCanvasTest {
         final ArgumentCaptor<FormattedText> measured = ArgumentCaptor.forClass(FormattedText.class);
         verify(this.font).width(measured.capture());
         assertEquals("abc", measured.getValue().getString());
+    }
+
+    @Test
+    void theAscentIsVanillasBaseline() {
+        // Vanilla places every font's glyphs on a baseline 7 below the top of the 9-pixel line
+        assertEquals(7f, this.canvas.textMetrics().ascent(TextStyle.DEFAULT));
+        assertEquals(9f, this.canvas.textMetrics().lineHeight(TextStyle.DEFAULT));
     }
 
     @Test

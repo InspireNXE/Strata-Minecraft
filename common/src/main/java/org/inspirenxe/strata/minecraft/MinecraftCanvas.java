@@ -50,7 +50,11 @@ import java.util.function.Function;
  * <ul>
  *     <li>Minecraft draws in whole GUI pixels. Each edge of a fill, sprite or clip moves down to the whole pixel it
  *     lies in, as vanilla's integer coordinates would put it, so a whole-sized rectangle keeps its size wherever it
- *     sits; text positions round to the nearest pixel.</li>
+ *     sits; text positions round to the nearest pixel. A fill or gradient less than one GUI pixel across or down,
+ *     such as a hairline one device pixel wide or a row of a shape Strata draws from fills, is drawn in device
+ *     pixels instead when the GUI scale is above 1: its edges move down to whole device pixels, under the pose
+ *     scaled down by the density given to {@link #begin(GuiGraphicsExtractor, float)}, so it neither vanishes nor
+ *     swells to a whole GUI pixel.</li>
  *     <li>Sprites come from the {@code minecraft:gui} atlas, which reads {@code assets/<namespace>/textures/gui/
  *     sprites/<path>.png}, and draw with vanilla's {@code GUI_TEXTURED} pipeline. The tint is passed as vanilla's
  *     sprite color.</li>
@@ -76,11 +80,16 @@ public final class MinecraftCanvas implements Canvas {
      * What a visual this canvas cannot draw shows as.
      */
     public static final int MISSING_VISUAL_COLOR = 0xFFFF00FF;
+    /**
+     * How far below a whole device pixel an edge may fall, from float rounding, and still count as on it.
+     */
+    private static final float DEVICE_SLACK = 1f / 1024f;
 
     private final Map<SpriteId, Identifier> identifiers;
     private final MinecraftTextMetrics textMetrics;
     private final Function<ResolvableProfile, PlayerSkin> skins;
     private GuiGraphicsExtractor graphics;
+    private float pixelsPerUnit = 1f;
 
     /**
      * Creates a canvas.
@@ -104,12 +113,29 @@ public final class MinecraftCanvas implements Canvas {
     }
 
     /**
-     * Points the canvas at this frame's graphics.
+     * Points the canvas at this frame's graphics, with one device pixel per GUI pixel, so every fill snaps to whole
+     * GUI pixels.
      *
      * @param graphics the graphics vanilla passed to the screen's {@code extractRenderState}
      */
     public void begin(final GuiGraphicsExtractor graphics) {
+        this.begin(graphics, 1f);
+    }
+
+    /**
+     * Points the canvas at this frame's graphics, drawn at a given density. Fills and gradients less than one GUI
+     * pixel across or down are drawn in device pixels when the density is above 1.
+     *
+     * @param graphics the graphics vanilla passed to the screen's {@code extractRenderState}
+     * @param pixelsPerUnit device pixels per GUI pixel, the window's GUI scale
+     * @throws IllegalArgumentException if the density is not finite and greater than 0
+     */
+    public void begin(final GuiGraphicsExtractor graphics, final float pixelsPerUnit) {
+        if (!(pixelsPerUnit > 0f) || Float.isInfinite(pixelsPerUnit)) {
+            throw new IllegalArgumentException("Pixels per unit must be finite and greater than 0: " + pixelsPerUnit);
+        }
         this.graphics = graphics;
+        this.pixelsPerUnit = pixelsPerUnit;
     }
 
     /**
@@ -126,12 +152,55 @@ public final class MinecraftCanvas implements Canvas {
         if ((argb >>> 24) == 0) {
             return;
         }
+        if (this.isFine(rect)) {
+            this.fillFine(rect, argb, argb);
+            return;
+        }
         this.graphics.fill(left(rect), top(rect), right(rect), bottom(rect), argb);
     }
 
     @Override
     public void fillGradient(final Rect rect, final int topArgb, final int bottomArgb) {
+        if (this.isFine(rect)) {
+            this.fillFine(rect, topArgb, bottomArgb);
+            return;
+        }
         this.graphics.fillGradient(left(rect), top(rect), right(rect), bottom(rect), topArgb, bottomArgb);
+    }
+
+    /**
+     * Returns whether a rectangle is drawn in device pixels: one less than a GUI pixel across or down, on a display
+     * with more than one device pixel per GUI pixel.
+     */
+    private boolean isFine(final Rect rect) {
+        return this.pixelsPerUnit > 1f && (rect.width() < 1f || rect.height() < 1f);
+    }
+
+    /**
+     * Fills a rectangle with each edge moved down to the whole device pixel it lies in, an edge a hair below a whole
+     * pixel from float rounding counting as on it, under the pose scaled down to device pixels. Draws nothing when
+     * that leaves it empty.
+     */
+    private void fillFine(final Rect rect, final int topArgb, final int bottomArgb) {
+        final float density = this.pixelsPerUnit;
+        final int x0 = (int) Math.floor(rect.x() * density + DEVICE_SLACK);
+        final int y0 = (int) Math.floor(rect.y() * density + DEVICE_SLACK);
+        final int x1 = (int) Math.floor(rect.right() * density + DEVICE_SLACK);
+        final int y1 = (int) Math.floor(rect.bottom() * density + DEVICE_SLACK);
+        if (x1 <= x0 || y1 <= y0) {
+            return;
+        }
+        this.graphics.pose().pushMatrix();
+        try {
+            this.graphics.pose().scale(1f / density);
+            if (topArgb == bottomArgb) {
+                this.graphics.fill(x0, y0, x1, y1, topArgb);
+            } else {
+                this.graphics.fillGradient(x0, y0, x1, y1, topArgb, bottomArgb);
+            }
+        } finally {
+            this.graphics.pose().popMatrix();
+        }
     }
 
     @Override

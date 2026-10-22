@@ -15,6 +15,7 @@
  */
 package org.inspirenxe.strata.minecraft;
 
+import com.mojang.blaze3d.font.GlyphProvider;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -27,7 +28,9 @@ import org.inspirenxe.strata.api.text.TextStyle;
  * {@link Font}.
  *
  * <p>Widths are whole GUI pixels, as vanilla's font reports them, and include vanilla's extra pixel for bold. The
- * line height is the font's {@code lineHeight}, 9 for the default font. Color and shadow do not change widths.</p>
+ * line height is the font's {@code lineHeight}, 9. The ascent is vanilla's {@link GlyphProvider#BASELINE}, 7: every
+ * font, a resource pack's included, places its glyphs on a baseline that far below the top of the line, each glyph
+ * by its own ascent. Color and shadow do not change widths.</p>
  */
 public final class MinecraftTextMetrics implements TextMetrics {
     private final Font font;
@@ -69,6 +72,11 @@ public final class MinecraftTextMetrics implements TextMetrics {
     @Override
     public float lineHeight(final TextStyle style) {
         return this.font.lineHeight;
+    }
+
+    @Override
+    public float ascent(final TextStyle style) {
+        return Math.min(GlyphProvider.BASELINE, this.font.lineHeight);
     }
 
     private static Style style(final TextStyle style) {

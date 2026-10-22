@@ -185,4 +185,17 @@ public final class MinecraftPlatform implements Platform {
     static Executor uiExecutor(final Minecraft minecraft) {
         return minecraft::schedule;
     }
+
+    /**
+     * Returns how many device pixels one UI unit covers: the GUI scale, the framebuffer pixels per GUI pixel. The
+     * game asks SDL for a framebuffer of high pixel density, so on a display that scales its content, such as a
+     * Retina display, the framebuffer already holds the display's own pixels, and the window's content scale is
+     * left out rather than counted twice.
+     *
+     * @param minecraft the game
+     * @return the density, at least 1
+     */
+    static float pixelsPerUnit(final Minecraft minecraft) {
+        return Math.max(1, minecraft.getWindow().getGuiScale());
+    }
 }
