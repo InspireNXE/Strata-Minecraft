@@ -35,6 +35,7 @@ import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.AtlasSpriteVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
@@ -59,6 +60,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,6 +92,7 @@ class MinecraftCanvasTest {
     private FakeBackend backend;
     private MinecraftCanvas canvas;
     private GameProfile resolved;
+    private FakeTextures textures;
 
     @BeforeAll
     static void bootstrap() {
@@ -104,10 +107,11 @@ class MinecraftCanvasTest {
         this.pose = new PoseStack();
         when(this.graphics.pose()).thenReturn(this.pose);
         this.backend = new FakeBackend();
+        this.textures = new FakeTextures();
         this.canvas = new MinecraftCanvas(this.font, profile -> {
             this.resolved = profile;
             return DefaultPlayerSkin.getDefaultSkin(UUIDUtil.getOrCreatePlayerUUID(profile));
-        }, this.backend);
+        }, this.backend, this.textures);
         this.canvas.begin(this.graphics);
     }
 
@@ -603,6 +607,98 @@ class MinecraftCanvasTest {
         @Override
         public void setCursor(final CursorKind cursor) {
             this.cursors.add(cursor);
+        }
+    }
+
+    @Test
+    void pixelBuffersDrawFromATextureWrittenWhenTheyChange() {
+        final PixelBuffer buffer = PixelBuffer.of(4, 2).fill(0xFF102030);
+
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0xFFFFFFFF);
+        this.canvas.begin(this.graphics);
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0xFFFFFFFF);
+
+        assertEquals(1, this.textures.made.size());
+        final FakeTexture texture = this.textures.made.get(0);
+        assertEquals(4, texture.width);
+        assertEquals(2, texture.height);
+        assertEquals(1, texture.writes);
+        assertEquals(0xFF102030, texture.pixels[7]);
+        // Stretched over the rectangle from the whole buffer
+        verify(this.graphics, times(2)).blit(texture.id, 10, 20, 8, 4, 0f, 0f, 4, 2, 4, 2);
+
+        buffer.set(0, 0, 0xFFFFFFFF).changed();
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0x80FFFFFF);
+
+        assertEquals(2, texture.writes);
+        assertEquals(0xFFFFFFFF, texture.pixels[0]);
+        verify(this.graphics, times(3)).blit(texture.id, 10, 20, 8, 4, 0f, 0f, 4, 2, 4, 2);
+        verify(this.graphics).setColor(1f, 1f, 1f, 128 / 255f);
+    }
+
+    @Test
+    void pixelTexturesAreReleasedWhenIdleOrWhenTheScreenCloses() {
+        final PixelBuffer idle = PixelBuffer.of(1, 1);
+        final PixelBuffer kept = PixelBuffer.of(1, 1);
+        this.canvas.pixels(idle, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+
+        for (int frame = 0; frame <= PixelTextures.IDLE_FRAMES; frame++) {
+            this.canvas.begin(this.graphics);
+            this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        }
+
+        assertTrue(this.textures.made.get(0).closed, "the idle buffer's texture is released");
+        assertFalse(this.textures.made.get(1).closed, "the drawn buffer's texture is kept");
+
+        this.canvas.releaseTextures();
+
+        assertTrue(this.textures.made.get(1).closed, "closing the screen releases the rest");
+        // Drawn again, the buffer gets a new texture
+        this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        assertEquals(3, this.textures.made.size());
+    }
+
+    /**
+     * Textures that keep what was written to them, in place of the game's.
+     */
+    private static final class FakeTextures implements PixelTextures.Textures {
+        private final List<FakeTexture> made = new ArrayList<>();
+
+        @Override
+        public PixelTextures.Texture create(final ResourceLocation id, final int width, final int height) {
+            final FakeTexture texture = new FakeTexture(id, width, height);
+            this.made.add(texture);
+            return texture;
+        }
+    }
+
+    /**
+     * One texture made by {@link FakeTextures}.
+     */
+    private static final class FakeTexture implements PixelTextures.Texture {
+        private final ResourceLocation id;
+        private final int width;
+        private final int height;
+        private int[] pixels;
+        private int writes;
+        private boolean closed;
+
+        FakeTexture(final ResourceLocation id, final int width, final int height) {
+            this.id = id;
+            this.width = width;
+            this.height = height;
+        }
+
+        @Override
+        public void write(final int[] argb) {
+            this.pixels = argb.clone();
+            this.writes++;
+        }
+
+        @Override
+        public void close() {
+            this.closed = true;
         }
     }
 }

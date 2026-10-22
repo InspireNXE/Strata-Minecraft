@@ -275,6 +275,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         if (this.host != null) {
             this.host.close();
             this.host = null;
+            this.canvas.releaseTextures();
         }
         if (this.canvas != null) {
             this.canvas.resetCursor();

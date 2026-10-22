@@ -32,6 +32,7 @@ import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.AtlasSpriteVisual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
@@ -93,6 +94,10 @@ import java.util.function.Function;
  *     nine-slice tint, slot icon and player face's tint, so a fading component fades with what it draws. Item
  *     visuals are rendered by the game's item renderer, which takes no color, so items do not fade: they stay opaque
  *     until the component stops drawing them.</li>
+ *     <li>Pixel buffers draw from a game texture each, a {@code DynamicTexture} registered as
+ *     {@code strata:pixels/<n>}, stretched over the rectangle with nearest sampling and tinted. A buffer's pixels are
+ *     copied again only when its version moved, and its texture is released once it has gone undrawn for
+ *     {@value PixelTextures#IDLE_FRAMES} frames or the screen closes.</li>
  *     <li>1.20.1 has no cursor API, so cursors are set on the window through GLFW's standard cursors. A cursor the
  *     system lacks shows as the arrow.</li>
  * </ul>
@@ -122,6 +127,7 @@ public final class MinecraftCanvas implements Canvas {
     private final Function<GameProfile, ResourceLocation> skins;
     private final Backend backend;
     private final Vector3f corner;
+    private final PixelTextures pixelTextures;
     private GuiGraphics graphics;
     private float pixelsPerUnit = 1f;
     private CursorKind cursor;
@@ -136,24 +142,27 @@ public final class MinecraftCanvas implements Canvas {
      * @param font the font text is drawn and measured with, usually the screen's
      */
     public MinecraftCanvas(final Font font) {
-        this(font, MinecraftCanvas::skinOf, Backend.VANILLA);
+        this(font, MinecraftCanvas::skinOf, Backend.VANILLA, PixelTextures.Textures.GAME);
     }
 
     /**
-     * Creates a canvas that looks player skins up with the given function and reaches the render system through
-     * the given backend, for tests.
+     * Creates a canvas that looks player skins up, reaches the render system and makes textures through the given
+     * functions, for tests.
      *
      * @param font the font text is drawn and measured with
      * @param skins returns the skin texture to draw for a profile, at once
      * @param backend the render system calls the graphics do not cover
+     * @param bufferTextures makes the textures pixel buffers are drawn from
      */
-    MinecraftCanvas(final Font font, final Function<GameProfile, ResourceLocation> skins, final Backend backend) {
+    MinecraftCanvas(final Font font, final Function<GameProfile, ResourceLocation> skins, final Backend backend,
+                    final PixelTextures.Textures bufferTextures) {
         this.textures = new HashMap<>();
         this.sizes = new HashMap<>();
         this.textMetrics = new MinecraftTextMetrics(font);
         this.skins = skins;
         this.backend = backend;
         this.corner = new Vector3f();
+        this.pixelTextures = new PixelTextures(bufferTextures);
         this.cursor = CursorKind.ARROW;
     }
 
@@ -184,6 +193,15 @@ public final class MinecraftCanvas implements Canvas {
         this.cursor = CursorKind.ARROW;
         this.opacity = 1f;
         this.opacityDepth = 0;
+        this.pixelTextures.nextFrame();
+    }
+
+    /**
+     * Releases the game textures this canvas made for pixel buffers. Call it when the screen it draws closes; a
+     * buffer drawn afterwards gets a new texture.
+     */
+    public void releaseTextures() {
+        this.pixelTextures.close();
     }
 
     /**
@@ -511,6 +529,26 @@ public final class MinecraftCanvas implements Canvas {
             this.atlasSprite(sprite, rect, this.faded(tint));
         } else {
             this.fill(rect, MISSING_VISUAL_COLOR);
+        }
+    }
+
+    @Override
+    public void pixels(final PixelBuffer buffer, final Rect rect, final int tint) {
+        final int color = this.faded(tint);
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if ((color >>> 24) == 0 || width <= 0 || height <= 0) {
+            return;
+        }
+        final ResourceLocation texture = this.pixelTextures.texture(buffer);
+        this.beginTint(color);
+        try {
+            this.graphics.blit(texture, x, y, width, height, 0f, 0f, buffer.width(), buffer.height(), buffer.width(),
+                    buffer.height());
+        } finally {
+            this.endTint(color);
         }
     }
 
