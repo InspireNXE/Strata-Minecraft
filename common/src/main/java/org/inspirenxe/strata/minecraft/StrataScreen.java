@@ -30,10 +30,13 @@ import org.inspirenxe.strata.api.screen.ScreenHandle;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.ThemeRef;
+import org.inspirenxe.strata.api.transfer.Transfer;
 import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.spi.HeldKeys;
 import org.inspirenxe.strata.spi.ScreenHost;
 
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -90,6 +93,9 @@ import java.util.Objects;
  *     Alt held.</li>
  *     <li>Minecraft passes a character outside the Basic Multilingual Plane as two {@code char}s; the screen joins
  *     them into one code point.</li>
+ *     <li>Files dropped on the game window reach the component under the pointer as a drop of
+ *     {@code Transfer.files}, through {@link #onFilesDrop(List)}. The game reports no drag before the drop, so
+ *     components hear {@code DRAG_OVER} and {@code DROP} only when the files land, at the pointer's last position.</li>
  *     <li>Whether the game pauses behind the screen follows vanilla's {@link #isPauseScreen()}; override it to
  *     change that.</li>
  * </ul>
@@ -129,6 +135,9 @@ public class StrataScreen extends Screen {
      * does not ask again.
      */
     private boolean closing;
+    // Where the pointer was last seen, in GUI pixels, for files dropped on the window
+    private float pointerX;
+    private float pointerY;
 
     /**
      * Creates the vanilla screen. Nothing is built until Minecraft opens it.
@@ -434,6 +443,8 @@ public class StrataScreen extends Screen {
 
     @Override
     public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float a) {
+        this.pointerX = mouseX;
+        this.pointerY = mouseY;
         // Vanilla's background, the dimmed world or the dirt, which 1.20.1's screens draw themselves
         this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, a);
@@ -444,7 +455,21 @@ public class StrataScreen extends Screen {
 
     @Override
     public void mouseMoved(final double x, final double y) {
+        this.pointerX = (float) x;
+        this.pointerY = (float) y;
         this.host.pointerMoved((float) x, (float) y, MinecraftInput.heldModifiers());
+    }
+
+    /**
+     * Drops files from the desktop on the component under the pointer, as {@code Transfer.files}.
+     *
+     * @param files the dropped files; nothing happens for none
+     */
+    @Override
+    public void onFilesDrop(final List<Path> files) {
+        if (!files.isEmpty() && this.host != null) {
+            this.host.dropped(this.pointerX, this.pointerY, Transfer.files(files), MinecraftInput.heldModifiers());
+        }
     }
 
     @Override
