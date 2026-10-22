@@ -217,6 +217,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             this.host = this.themeRef != null
                     ? StrataCore.createScreenHost(platform, this.themeRef, this::closeAgreed)
                     : StrataCore.createScreenHost(platform, this.theme, this::closeAgreed);
+            this.host.setPixelsPerUnit(MinecraftPlatform.pixelsPerUnit(this.minecraft));
             this.host.resize(this.width, this.height);
             this.host.open(factory -> {
                 this.panel = new MenuPanel(factory, this.owner);
@@ -224,6 +225,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             });
             this.hostTitle.opened(this.host);
         } else {
+            this.host.setPixelsPerUnit(MinecraftPlatform.pixelsPerUnit(this.minecraft));
             this.host.resize(this.width, this.height);
         }
         this.placeMenu(true);
@@ -296,7 +298,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
             // Vanilla sets this while drawing its slots, which Strata mode skips
             this.hover(this.pointerOverMenu() ? this.slotAt(mouseX, mouseY) : null);
         }
-        this.canvas.begin(graphics);
+        this.canvas.begin(graphics, MinecraftPlatform.pixelsPerUnit(this.minecraft));
         this.host.render(this.canvas);
         // Over everything Strata drew
         this.canvas.nextLayer();
