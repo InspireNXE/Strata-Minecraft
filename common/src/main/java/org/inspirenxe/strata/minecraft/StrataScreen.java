@@ -58,7 +58,8 @@ import java.util.Objects;
  * <p>How Minecraft maps onto Strata:</p>
  * <ul>
  *     <li>One UI unit is one GUI pixel, so layouts follow the player's GUI scale. The host is resized whenever
- *     vanilla re-initializes the screen, such as on a window resize.</li>
+ *     vanilla re-initializes the screen, such as on a window resize or a change of GUI scale, and told the GUI
+ *     scale as its density in device pixels per unit.</li>
  *     <li>The Strata screen is built when the vanilla screen first opens, and closed when vanilla removes it. A
  *     Strata screen that closes through its handle gets vanilla's {@link #onClose()}.</li>
  *     <li>Escape that Strata does not use, while {@link #shouldCloseOnEsc()} is true, and any other call to
@@ -265,6 +266,7 @@ public class StrataScreen extends Screen {
         // Shown again, so nothing waits above this screen any more
         this.child = null;
         final ScreenHost current = this.host();
+        current.setPixelsPerUnit(MinecraftPlatform.pixelsPerUnit(this.minecraft));
         current.resize(this.width, this.height);
         if (current.screen().isEmpty()) {
             current.open(this.content);
@@ -435,7 +437,7 @@ public class StrataScreen extends Screen {
         // Vanilla's background, the dimmed world or the dirt, which 1.20.1's screens draw themselves
         this.renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, a);
-        this.canvas.begin(graphics);
+        this.canvas.begin(graphics, MinecraftPlatform.pixelsPerUnit(this.minecraft));
         this.host.render(this.canvas);
         this.canvas.end();
     }

@@ -16,6 +16,7 @@
 package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,6 +24,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.extension.CustomComponent;
+import org.inspirenxe.strata.api.extension.MeasureContext;
+import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.screen.ScreenHandle;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.theme.ThemeRef;
@@ -65,6 +69,9 @@ class StrataScreenStackTest {
         when(this.minecraft.getResourceManager()).thenReturn(mock(ResourceManager.class));
         // The tests play the client thread
         when(this.minecraft.isSameThread()).thenReturn(true);
+        final Window window = mock(Window.class);
+        when(window.getGuiScale()).thenReturn(3.0);
+        when(this.minecraft.getWindow()).thenReturn(window);
         this.font = mock(Font.class);
         this.gui = new FakeGui();
         StrataScreen.switcher = this.gui;
@@ -184,6 +191,16 @@ class StrataScreenStackTest {
         assertFalse(opened.isOpen());
         assertEquals(2, second.asks);
         assertEquals(1, second.closes);
+    }
+
+    @Test
+    void theDensityIsTheGuiScale() {
+        final Counting first = new Counting();
+        this.show(first);
+        final Probe probe = new Probe(first.handle.factory());
+        ((org.inspirenxe.strata.api.layout.AnchorPanel) first.built.get(0)).add(probe);
+
+        assertEquals(3f, probe.density());
     }
 
     @Test
@@ -341,6 +358,24 @@ class StrataScreenStackTest {
                 strata.height = 240;
                 strata.init();
             }
+        }
+    }
+
+    /**
+     * A component that reads its environment's density.
+     */
+    private static final class Probe extends CustomComponent<Probe> {
+        Probe(final ComponentFactory factory) {
+            super(factory);
+        }
+
+        float density() {
+            return this.environment().pixelsPerUnit();
+        }
+
+        @Override
+        protected Size measure(final MeasureContext context, final float availableWidth, final float availableHeight) {
+            return Size.ZERO;
         }
     }
 
