@@ -134,12 +134,12 @@ class ItemDisplayTest {
     @Test
     void theTooltipIsMadeWhenThePointerEnters() {
         final ItemDisplay display = this.show(new ItemDisplay(this.host.factory(), new ItemStack(Items.DIAMOND)));
-        assertNull(display.tooltip(), "nothing is asked before the pointer arrives");
+        assertNull(display.tooltip().orElse(null), "nothing is asked before the pointer arrives");
 
         this.host.pointerMoved(15f, 15f, Modifiers.NONE);
 
         assertEquals(1, this.asked.size());
-        assertEquals(MinecraftTooltips.lines(List.of(new ItemStack(Items.DIAMOND).getHoverName())), display.tooltip());
+        assertEquals(MinecraftTooltips.lines(List.of(new ItemStack(Items.DIAMOND).getHoverName())), display.tooltip().orElse(null));
     }
 
     @Test
@@ -153,7 +153,7 @@ class ItemDisplayTest {
         assertTrue(ItemStack.matches(new ItemStack(Items.EMERALD), this.asked.get(1)));
 
         display.setStack(ItemStack.EMPTY);
-        assertNull(display.tooltip(), "an empty stack has no tooltip");
+        assertNull(display.tooltip().orElse(null), "an empty stack has no tooltip");
         assertEquals(2, this.asked.size(), "the function never sees an empty stack");
     }
 
@@ -167,7 +167,7 @@ class ItemDisplayTest {
             this.host.open(ui -> ui.absolutePanel().add(display, 10f, 10f));
             this.host.layout();
             this.host.pointerMoved(15f, 15f, Modifiers.NONE);
-            assertEquals(Tooltip.text("Appearance of 3"), display.tooltip());
+            assertEquals(Tooltip.text("Appearance of 3"), display.tooltip().orElse(null));
         } finally {
             registration.unsubscribe();
         }
@@ -180,7 +180,7 @@ class ItemDisplayTest {
 
         this.host.pointerMoved(15f, 15f, Modifiers.NONE);
 
-        assertNull(display.tooltip());
+        assertNull(display.tooltip().orElse(null));
     }
 
     @Test
@@ -189,12 +189,12 @@ class ItemDisplayTest {
         this.host.pointerMoved(15f, 15f, Modifiers.NONE);
 
         display.setTooltipFunction(null);
-        assertNull(display.tooltip(), "the tooltip the display made goes");
+        assertNull(display.tooltip().orElse(null), "the tooltip the display made goes");
 
         final Tooltip own = Tooltip.text("Mine");
         display.setTooltip(own);
         this.host.pointerMoved(50f, 50f, Modifiers.NONE);
         this.host.pointerMoved(15f, 15f, Modifiers.NONE);
-        assertSame(own, display.tooltip(), "a tooltip set from code stays");
+        assertSame(own, display.tooltip().orElse(null), "a tooltip set from code stays");
     }
 }

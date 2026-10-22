@@ -179,8 +179,8 @@ public final class ItemDisplay extends CustomComponent<ItemDisplay> implements H
     public ItemDisplay setTooltipFunction(final Function<? super ItemStack, ? extends Tooltip> tooltipFunction) {
         this.tooltipFunction = tooltipFunction;
         if (tooltipFunction == null) {
-            if (this.ownTooltip != null && this.tooltip() == this.ownTooltip) {
-                this.setTooltip((Tooltip) null);
+            if (this.ownTooltip != null && this.tooltip().orElse(null) == this.ownTooltip) {
+                this.clearTooltip();
             }
             this.ownTooltip = null;
         } else if (this.isHovered()) {
@@ -231,7 +231,11 @@ public final class ItemDisplay extends CustomComponent<ItemDisplay> implements H
             tooltip = null;
         }
         this.ownTooltip = tooltip;
-        this.setTooltip(tooltip);
+        if (tooltip == null) {
+            this.clearTooltip();
+        } else {
+            this.setTooltip(tooltip);
+        }
     }
 
     /**

@@ -489,7 +489,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     }
 
     private static boolean isShown(final org.inspirenxe.strata.api.component.Component<?> component) {
-        for (org.inspirenxe.strata.api.component.Component<?> c = component; c != null; c = c.parent()) {
+        for (org.inspirenxe.strata.api.component.Component<?> c = component; c != null; c = c.parent().orElse(null)) {
             if (!c.isVisible()) {
                 return false;
             }
@@ -523,10 +523,10 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         if (overlays.of(target).isPresent()) {
             return false;
         }
-        if (target.parent() == null) {
+        if (target.parent().isEmpty()) {
             return true;
         }
-        for (org.inspirenxe.strata.api.component.Component<?> c = target; c != null; c = c.parent()) {
+        for (org.inspirenxe.strata.api.component.Component<?> c = target; c != null; c = c.parent().orElse(null)) {
             if (c == panel) {
                 return true;
             }
