@@ -17,6 +17,7 @@ package org.inspirenxe.strata.minecraft;
 
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import org.lwjgl.sdl.SDLMouse;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -70,7 +71,11 @@ import java.util.function.Function;
  *     over the rectangle snapped to whole pixels and tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
  *     tooltip, covers earlier layers.</li>
- *     <li>Cursors map to vanilla's {@link CursorTypes}.</li>
+ *     <li>Cursors map to vanilla's {@link CursorTypes}: the arrow, I-beam, pointing hand, crosshair, the
+ *     horizontal, vertical and four-way resize arrows and the "no" sign. The diagonal resize arrows, the busy cursor
+ *     and the arrow with a busy sign are SDL's own system cursors, which vanilla does not name, made the first time
+ *     one is asked for. {@link #showsCursor} answers false for a kind SDL could not make and for the grab, copy,
+ *     no-drop and help cursors, which SDL lacks, so the host asks for the kind's fallback instead.</li>
  * </ul>
  *
  * <p>Call {@link #begin(GuiGraphicsExtractor)} at the start of every frame. Use it on the render thread only.</p>
@@ -326,12 +331,22 @@ public final class MinecraftCanvas implements Canvas {
         this.graphics.requestCursor(cursorType(cursor));
     }
 
+    @Override
+    public boolean showsCursor(final CursorKind cursor) {
+        return switch (cursor) {
+            case ARROW, TEXT, HAND, CROSSHAIR, RESIZE_HORIZONTAL, RESIZE_VERTICAL, RESIZE_ALL, NOT_ALLOWED -> true;
+            case RESIZE_DIAGONAL_DOWN, RESIZE_DIAGONAL_UP, WAIT, PROGRESS -> SystemCursors.of(cursor) != null;
+            default -> false;
+        };
+    }
+
     private Identifier identifier(final SpriteId sprite) {
         return this.identifiers.computeIfAbsent(sprite, id -> Identifier.fromNamespaceAndPath(id.namespace(), id.path()));
     }
 
     /**
-     * Maps a Strata cursor to vanilla's.
+     * Maps a Strata cursor to vanilla's, or to an SDL system cursor where vanilla names none. A kind with neither
+     * maps to its fallback's cursor.
      *
      * @param cursor the Strata cursor
      * @return the vanilla cursor
@@ -346,9 +361,49 @@ public final class MinecraftCanvas implements Canvas {
             case RESIZE_VERTICAL -> CursorTypes.RESIZE_NS;
             case RESIZE_ALL -> CursorTypes.RESIZE_ALL;
             case NOT_ALLOWED -> CursorTypes.NOT_ALLOWED;
-            // Kinds with no mapping yet show their fallback
+            case RESIZE_DIAGONAL_DOWN, RESIZE_DIAGONAL_UP, WAIT, PROGRESS -> {
+                final CursorType system = SystemCursors.of(cursor);
+                yield system != null ? system : cursorType(cursor.fallback());
+            }
+            // SDL has no grab, copy, no-drop or help cursor, so these show their fallback
             default -> cursorType(cursor.fallback());
         };
+    }
+
+    /**
+     * SDL's system cursors that vanilla's {@link CursorTypes} does not name, made when this class is first used.
+     * A cursor SDL cannot make is {@code null}.
+     */
+    private static final class SystemCursors {
+        private static final CursorType RESIZE_NWSE = make(SDLMouse.SDL_SYSTEM_CURSOR_NWSE_RESIZE, "resize_nwse");
+        private static final CursorType RESIZE_NESW = make(SDLMouse.SDL_SYSTEM_CURSOR_NESW_RESIZE, "resize_nesw");
+        private static final CursorType WAIT = make(SDLMouse.SDL_SYSTEM_CURSOR_WAIT, "wait");
+        private static final CursorType PROGRESS = make(SDLMouse.SDL_SYSTEM_CURSOR_PROGRESS, "progress");
+
+        private SystemCursors() {
+        }
+
+        /**
+         * Returns the system cursor for a diagonal resize, wait or progress kind.
+         *
+         * @param cursor the kind
+         * @return the cursor, or {@code null} if SDL could not make it or the kind is another
+         */
+        static CursorType of(final CursorKind cursor) {
+            return switch (cursor) {
+                case RESIZE_DIAGONAL_DOWN -> RESIZE_NWSE;
+                case RESIZE_DIAGONAL_UP -> RESIZE_NESW;
+                case WAIT -> WAIT;
+                case PROGRESS -> PROGRESS;
+                default -> null;
+            };
+        }
+
+        private static CursorType make(final int shape, final String name) {
+            // Vanilla hands back the fallback it is given when SDL has no such cursor
+            final CursorType made = CursorType.createStandardCursor(shape, name, CursorType.DEFAULT);
+            return made == CursorType.DEFAULT ? null : made;
+        }
     }
 
     private static int left(final Rect rect) {

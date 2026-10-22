@@ -42,7 +42,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -201,6 +204,23 @@ class MinecraftCanvasTest {
 
         for (final CursorKind kind : CursorKind.values()) {
             assertTrue(MinecraftCanvas.cursorType(kind) != null, kind + " has a vanilla cursor");
+            if (!this.canvas.showsCursor(kind)) {
+                // A kind the canvas does not show looks like its fallback, which the host asks for instead
+                assertEquals(MinecraftCanvas.cursorType(kind.fallback()), MinecraftCanvas.cursorType(kind), kind.name());
+            }
+        }
+    }
+
+    @Test
+    void vanillasCursorsShowAndTheOnesSdlLacksDoNot() {
+        for (final CursorKind kind : List.of(CursorKind.ARROW, CursorKind.TEXT, CursorKind.HAND, CursorKind.CROSSHAIR,
+                CursorKind.RESIZE_HORIZONTAL, CursorKind.RESIZE_VERTICAL, CursorKind.RESIZE_ALL,
+                CursorKind.NOT_ALLOWED)) {
+            assertTrue(this.canvas.showsCursor(kind), kind.name());
+        }
+        for (final CursorKind kind : List.of(CursorKind.GRAB, CursorKind.GRABBING, CursorKind.COPY,
+                CursorKind.NO_DROP, CursorKind.HELP)) {
+            assertFalse(this.canvas.showsCursor(kind), kind.name());
         }
     }
 
