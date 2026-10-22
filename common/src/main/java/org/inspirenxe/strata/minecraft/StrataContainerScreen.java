@@ -285,6 +285,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         if (this.host != null) {
             this.host.close();
             this.host = null;
+            this.canvas.releaseTextures();
         }
         this.heldKeys.clear();
         this.vanillaButtons.clear();

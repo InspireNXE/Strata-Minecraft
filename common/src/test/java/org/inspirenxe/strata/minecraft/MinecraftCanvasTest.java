@@ -33,6 +33,7 @@ import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.joml.Matrix3x2f;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,6 +59,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,6 +73,7 @@ class MinecraftCanvasTest {
     private Matrix3x2fStack pose;
     private MinecraftCanvas canvas;
     private ResolvableProfile resolved;
+    private FakeTextures textures;
 
     @BeforeAll
     static void bootstrap() {
@@ -83,10 +87,11 @@ class MinecraftCanvasTest {
         this.font = mock(Font.class);
         this.pose = new Matrix3x2fStack(16);
         when(this.graphics.pose()).thenReturn(this.pose);
+        this.textures = new FakeTextures();
         this.canvas = new MinecraftCanvas(this.font, profile -> {
             this.resolved = profile;
             return DefaultPlayerSkin.get(profile.partialProfile());
-        });
+        }, this.textures);
         this.canvas.begin(this.graphics);
     }
 
@@ -425,5 +430,97 @@ class MinecraftCanvasTest {
                 MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")));
         assertNotEquals(MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ana")),
                 MinecraftVisuals.playerFace(ResolvableProfile.createUnresolved("Ben")));
+    }
+
+    @Test
+    void pixelBuffersDrawFromATextureWrittenWhenTheyChange() {
+        final PixelBuffer buffer = PixelBuffer.of(4, 2).fill(0xFF102030);
+
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0xFFFFFFFF);
+        this.canvas.begin(this.graphics);
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0xFFFFFFFF);
+
+        assertEquals(1, this.textures.made.size());
+        final FakeTexture texture = this.textures.made.getFirst();
+        assertEquals(4, texture.width);
+        assertEquals(2, texture.height);
+        assertEquals(1, texture.writes);
+        assertEquals(0xFF102030, texture.pixels[7]);
+        // Stretched over the rectangle from the whole buffer
+        verify(this.graphics, times(2)).blit(RenderPipelines.GUI_TEXTURED, texture.id, 10, 20, 0f, 0f, 8, 4, 4, 2, 4, 2,
+                0xFFFFFFFF);
+
+        buffer.set(0, 0, 0xFFFFFFFF).changed();
+        this.canvas.pixels(buffer, new Rect(10, 20, 8, 4), 0x80FFFFFF);
+
+        assertEquals(2, texture.writes);
+        assertEquals(0xFFFFFFFF, texture.pixels[0]);
+        verify(this.graphics).blit(RenderPipelines.GUI_TEXTURED, texture.id, 10, 20, 0f, 0f, 8, 4, 4, 2, 4, 2, 0x80FFFFFF);
+    }
+
+    @Test
+    void pixelTexturesAreReleasedWhenIdleOrWhenTheScreenCloses() {
+        final PixelBuffer idle = PixelBuffer.of(1, 1);
+        final PixelBuffer kept = PixelBuffer.of(1, 1);
+        this.canvas.pixels(idle, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+
+        for (int frame = 0; frame <= PixelTextures.IDLE_FRAMES; frame++) {
+            this.canvas.begin(this.graphics);
+            this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        }
+
+        assertTrue(this.textures.made.get(0).closed, "the idle buffer's texture is released");
+        assertFalse(this.textures.made.get(1).closed, "the drawn buffer's texture is kept");
+
+        this.canvas.releaseTextures();
+
+        assertTrue(this.textures.made.get(1).closed, "closing the screen releases the rest");
+        // Drawn again, the buffer gets a new texture
+        this.canvas.pixels(kept, new Rect(0, 0, 1, 1), 0xFFFFFFFF);
+        assertEquals(3, this.textures.made.size());
+    }
+
+    /**
+     * Textures that keep what was written to them, in place of the game's.
+     */
+    private static final class FakeTextures implements PixelTextures.Textures {
+        private final List<FakeTexture> made = new ArrayList<>();
+
+        @Override
+        public PixelTextures.Texture create(final Identifier id, final int width, final int height) {
+            final FakeTexture texture = new FakeTexture(id, width, height);
+            this.made.add(texture);
+            return texture;
+        }
+    }
+
+    /**
+     * One texture made by {@link FakeTextures}.
+     */
+    private static final class FakeTexture implements PixelTextures.Texture {
+        private final Identifier id;
+        private final int width;
+        private final int height;
+        private int[] pixels;
+        private int writes;
+        private boolean closed;
+
+        FakeTexture(final Identifier id, final int width, final int height) {
+            this.id = id;
+            this.width = width;
+            this.height = height;
+        }
+
+        @Override
+        public void write(final int[] argb) {
+            this.pixels = argb.clone();
+            this.writes++;
+        }
+
+        @Override
+        public void close() {
+            this.closed = true;
+        }
     }
 }

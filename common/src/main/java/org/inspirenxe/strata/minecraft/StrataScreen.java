@@ -427,6 +427,7 @@ public class StrataScreen extends Screen {
             final ScreenHost closing = this.host;
             this.host = null;
             closing.close();
+            this.canvas.releaseTextures();
         }
     }
 

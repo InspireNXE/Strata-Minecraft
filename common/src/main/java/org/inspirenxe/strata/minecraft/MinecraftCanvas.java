@@ -32,6 +32,7 @@ import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemDecorations;
 import org.inspirenxe.strata.minecraft.MinecraftVisuals.ItemVisual;
@@ -74,6 +75,10 @@ import java.util.function.Function;
  *     nine-slice tint and player face's tint, so a fading component fades with what it draws. Item visuals are
  *     rendered by the game's item renderer, which takes no color, so items do not fade: they stay opaque until the
  *     component stops drawing them.</li>
+ *     <li>Pixel buffers draw from a game texture each, a {@code DynamicTexture} registered as
+ *     {@code strata:pixels/<n>}, stretched over the rectangle with nearest sampling and tinted. A buffer's pixels are
+ *     copied again only when its version moved, and its texture is released once it has gone undrawn for
+ *     {@value PixelTextures#IDLE_FRAMES} frames or the screen closes.</li>
  *     <li>{@link #nextLayer()} starts a new vanilla stratum, so what draws after it, such as an overlay or the
  *     tooltip, covers earlier layers.</li>
  *     <li>Cursors map to vanilla's {@link CursorTypes}: the arrow, I-beam, pointing hand, crosshair, the
@@ -98,6 +103,7 @@ public final class MinecraftCanvas implements Canvas {
     private final Map<SpriteId, Identifier> identifiers;
     private final MinecraftTextMetrics textMetrics;
     private final Function<ResolvableProfile, PlayerSkin> skins;
+    private final PixelTextures pixelTextures;
     private GuiGraphicsExtractor graphics;
     private float pixelsPerUnit = 1f;
     // The opacity in force, and the ones pushed beneath it; the array grows, so painting allocates nothing once warm
@@ -111,19 +117,23 @@ public final class MinecraftCanvas implements Canvas {
      * @param font the font text is drawn and measured with, usually the screen's
      */
     public MinecraftCanvas(final Font font) {
-        this(font, profile -> Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin());
+        this(font, profile -> Minecraft.getInstance().playerSkinRenderCache().getOrDefault(profile).playerSkin(),
+                PixelTextures.Textures.GAME);
     }
 
     /**
-     * Creates a canvas that looks player skins up with the given function, for tests.
+     * Creates a canvas that looks player skins up and makes textures with the given functions, for tests.
      *
      * @param font the font text is drawn and measured with
      * @param skins returns the skin to draw for a profile, at once
+     * @param textures makes the textures pixel buffers are drawn from
      */
-    MinecraftCanvas(final Font font, final Function<ResolvableProfile, PlayerSkin> skins) {
+    MinecraftCanvas(final Font font, final Function<ResolvableProfile, PlayerSkin> skins,
+                    final PixelTextures.Textures textures) {
         this.identifiers = new HashMap<>();
         this.textMetrics = new MinecraftTextMetrics(font);
         this.skins = skins;
+        this.pixelTextures = new PixelTextures(textures);
     }
 
     /**
@@ -152,6 +162,15 @@ public final class MinecraftCanvas implements Canvas {
         this.pixelsPerUnit = pixelsPerUnit;
         this.opacity = 1f;
         this.opacityDepth = 0;
+        this.pixelTextures.nextFrame();
+    }
+
+    /**
+     * Releases the game textures this canvas made for pixel buffers. Call it when the screen it draws closes; a
+     * buffer drawn afterwards gets a new texture.
+     */
+    public void releaseTextures() {
+        this.pixelTextures.close();
     }
 
     /**
@@ -309,6 +328,21 @@ public final class MinecraftCanvas implements Canvas {
                     this.playerFace(skin, hat, rect, this.faded(tint));
             default -> this.fill(rect, MISSING_VISUAL_COLOR);
         }
+    }
+
+    @Override
+    public void pixels(final PixelBuffer buffer, final Rect rect, final int tint) {
+        final int color = this.faded(tint);
+        final int x = left(rect);
+        final int y = top(rect);
+        final int width = right(rect) - x;
+        final int height = bottom(rect) - y;
+        if ((color >>> 24) == 0 || width <= 0 || height <= 0) {
+            return;
+        }
+        final Identifier texture = this.pixelTextures.texture(buffer);
+        this.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0f, 0f, width, height, buffer.width(),
+                buffer.height(), buffer.width(), buffer.height(), color);
     }
 
     private void item(final ItemStack stack, final ItemDecorations decorations, final boolean fake, final int seed,
