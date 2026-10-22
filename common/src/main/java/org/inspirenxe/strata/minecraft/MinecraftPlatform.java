@@ -41,8 +41,8 @@ import java.util.Optional;
  *     and has no input method support to start or stop, so starting and stopping text input does nothing.</li>
  *     <li>Minecraft reports held keys as repeated presses, which {@link StrataScreen} turns into repeats, so
  *     {@link Capabilities#sendsKeyRepeat()} is true.</li>
- *     <li>Vanilla slices every gui sprite by its {@code .png.mcmeta} whenever it draws one, so
- *     {@link Capabilities#slicesSprites()} is true and sized and tiled paints reach the canvas whole.</li>
+ *     <li>Minecraft 1.20.1 stores no slicing with its images, so {@link Capabilities#slicesSprites()} is false and
+ *     core draws sized nine-slices and tiled paints from pieces.</li>
  *     <li>Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down, so
  *     {@link Conventions#activateOnPress()} is true.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
@@ -53,7 +53,7 @@ import java.util.Optional;
  * </ul>
  */
 public final class MinecraftPlatform implements Platform {
-    private static final Capabilities CAPABILITIES = new Capabilities(true, false, true);
+    private static final Capabilities CAPABILITIES = new Capabilities(true, false, false);
     // Vanilla's buttons, checkboxes, cycle buttons and tabs act as the mouse button goes down
     private static final Conventions CONVENTIONS = new Conventions(true);
 

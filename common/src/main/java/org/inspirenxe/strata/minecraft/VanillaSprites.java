@@ -43,6 +43,7 @@ import java.util.Optional;
  *     <li>{@code container/slot}: the first slot of the player's inventory in {@code container/inventory.png}.</li>
  *     <li>{@code toast/system}: the system toast in {@code toasts.png}, which a nine-slice paint cuts at its own
  *     border.</li>
+ *     <li>{@code options_background}: the 16 by 16 dirt that 1.20.1's lists and option screens tile.</li>
  *     <li>{@code widget/text_field} and {@code widget/text_field_highlighted}: black with a one-pixel gray or white
  *     edge, as vanilla's edit box fills them.</li>
  *     <li>{@code widget/scroller} and {@code widget/scroller_background}: the gray thumb with its lighter top and
@@ -59,6 +60,7 @@ final class VanillaSprites {
     private static final ResourceLocation TABS = vanillaTexture("textures/gui/tab_button.png");
     private static final ResourceLocation INVENTORY = vanillaTexture("textures/gui/container/inventory.png");
     private static final ResourceLocation TOASTS = vanillaTexture("textures/gui/toasts.png");
+    private static final ResourceLocation DIRT = vanillaTexture("textures/gui/options_background.png");
     private static final Insets BUTTON_SLICES = new Insets(20f, 4f, 20f, 4f);
     private static final Insets TAB_SLICES = new Insets(2f, 2f, 2f, 0f);
 
@@ -80,6 +82,7 @@ final class VanillaSprites {
             Map.entry(vanilla("widget/tab_selected_highlighted"), new Region(TABS, 256, 256, 0, 24, 130, 24, TAB_SLICES)),
             Map.entry(vanilla("container/slot"), new Region(INVENTORY, 256, 256, 7, 83, 18, 18, null)),
             Map.entry(vanilla("toast/system"), new Region(TOASTS, 256, 256, 0, 64, 160, 32, null)),
+            Map.entry(vanilla("options_background"), new Region(DIRT, 16, 16, 0, 0, 16, 16, null)),
             Map.entry(vanilla("widget/text_field"), new Fills(List.of(
                     new Fill(Insets.NONE, 0xFFA0A0A0), new Fill(Insets.of(1f), 0xFF000000)))),
             Map.entry(vanilla("widget/text_field_highlighted"), new Fills(List.of(
