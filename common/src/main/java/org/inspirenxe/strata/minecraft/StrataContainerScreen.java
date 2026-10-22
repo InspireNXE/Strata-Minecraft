@@ -368,7 +368,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
     @Override
     public void mouseMoved(final double x, final double y) {
-        this.host.pointerMoved((float) x, (float) y, Modifiers.NONE);
+        this.host.pointerMoved((float) x, (float) y, MinecraftInput.heldModifiers());
     }
 
     @Override
@@ -419,7 +419,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         }
         // Minecraft 1.20.1 scrolls on one axis only
         return this.host.scroll((float) x, (float) y, 0f, (float) delta, MinecraftInput.scrollKind(0.0, delta),
-                Modifiers.NONE);
+                MinecraftInput.heldModifiers());
     }
 
     @Override

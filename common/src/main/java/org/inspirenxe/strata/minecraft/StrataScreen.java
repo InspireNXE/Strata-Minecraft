@@ -83,9 +83,10 @@ import java.util.Objects;
  *     <li>Scroll amounts already include the player's wheel sensitivity. Fractional amounts count as
  *     {@link ScrollKind#PRECISE}. Minecraft 1.20.1 reports vertical scrolling only.</li>
  *     <li>The screen draws vanilla's background first: the world dimmed in game, the dirt in the menus.</li>
- *     <li>Minecraft gives no modifiers with pointer presses, so the screen reads the held modifier keys from the
- *     window for presses and releases. It gives none with pointer moves, scrolls or typed characters either, and
- *     those report {@link Modifiers#NONE}.</li>
+ *     <li>Minecraft gives no modifiers with pointer presses, moves, scrolls or typed characters. Presses, releases,
+ *     moves and scrolls report the modifier keys held at the time, read from the window, so a Shift+wheel scrolls
+ *     sideways. Typed characters report {@link Modifiers#NONE}, since some layouts type characters with Control and
+ *     Alt held.</li>
  *     <li>Minecraft passes a character outside the Basic Multilingual Plane as two {@code char}s; the screen joins
  *     them into one code point.</li>
  *     <li>Whether the game pauses behind the screen follows vanilla's {@link #isPauseScreen()}; override it to
@@ -441,7 +442,7 @@ public class StrataScreen extends Screen {
 
     @Override
     public void mouseMoved(final double x, final double y) {
-        this.host.pointerMoved((float) x, (float) y, Modifiers.NONE);
+        this.host.pointerMoved((float) x, (float) y, MinecraftInput.heldModifiers());
     }
 
     @Override
@@ -460,7 +461,7 @@ public class StrataScreen extends Screen {
     public boolean mouseScrolled(final double x, final double y, final double delta) {
         // Minecraft 1.20.1 scrolls on one axis only
         return this.host.scroll((float) x, (float) y, 0f, (float) delta, MinecraftInput.scrollKind(0.0, delta),
-                Modifiers.NONE) || super.mouseScrolled(x, y, delta);
+                MinecraftInput.heldModifiers()) || super.mouseScrolled(x, y, delta);
     }
 
     @Override
