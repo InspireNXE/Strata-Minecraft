@@ -38,10 +38,12 @@ import org.inspirenxe.strata.api.overlay.Overlay;
 import org.inspirenxe.strata.api.overlay.Overlays;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.ThemeRef;
+import org.inspirenxe.strata.api.transfer.Transfer;
 import org.inspirenxe.strata.core.StrataCore;
 import org.inspirenxe.strata.spi.HeldKeys;
 import org.inspirenxe.strata.spi.ScreenHost;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -85,6 +87,8 @@ import java.util.Set;
  *     <li>Vanilla's title and inventory labels are not drawn; put labels in the tree. The world behind is dimmed
  *     with vanilla's gradient, as for any container screen, and the game does not pause. The title vanilla narrates
  *     is the one given to the constructor until the Strata screen sets another with {@code ScreenHandle.setTitle}.</li>
+ *     <li>Files dropped on the game window reach the component under the pointer as a drop of
+ *     {@code Transfer.files}.</li>
  *     <li>Escape, the inventory key and any other call to {@link #onClose()} first ask the Strata screen through
  *     its {@code closeRequested}, and close nothing when it refuses. Closing through the Strata screen's handle
  *     does not ask, and neither does a server closing the menu.</li>
@@ -368,7 +372,22 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
 
     @Override
     public void mouseMoved(final double x, final double y) {
+        this.frameMouseX = (int) x;
+        this.frameMouseY = (int) y;
         this.host.pointerMoved((float) x, (float) y, MinecraftInput.held(this.minecraft));
+    }
+
+    /**
+     * Drops files from the desktop on the component under the pointer, as {@code Transfer.files}.
+     *
+     * @param files the dropped files; nothing happens for none
+     */
+    @Override
+    public void onFilesDrop(final List<Path> files) {
+        if (!files.isEmpty() && this.host != null) {
+            this.host.dropped(this.frameMouseX, this.frameMouseY, Transfer.files(files),
+                    MinecraftInput.held(this.minecraft));
+        }
     }
 
     @Override

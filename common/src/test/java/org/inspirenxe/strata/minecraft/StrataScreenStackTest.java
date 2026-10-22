@@ -25,6 +25,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.event.input.InputEvents;
+import org.inspirenxe.strata.api.event.input.TransferEvent;
+import org.inspirenxe.strata.api.layout.AnchorPanel;
+import org.inspirenxe.strata.api.transfer.DataFormat;
+import org.inspirenxe.strata.api.transfer.Transfer;
 import org.inspirenxe.strata.api.extension.CustomComponent;
 import org.inspirenxe.strata.api.extension.MeasureContext;
 import org.inspirenxe.strata.api.geometry.Size;
@@ -38,6 +43,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -195,11 +201,29 @@ class StrataScreenStackTest {
     }
 
     @Test
+    void filesDroppedOnTheWindowReachTheComponentUnderThePointer() {
+        final Counting first = new Counting();
+        final StrataScreen root = this.show(first);
+        final List<Transfer> dropped = new ArrayList<>();
+        final Probe target = new Probe(first.handle.factory())
+                .onEvent(InputEvents.DRAG_OVER, TransferEvent::accept)
+                .onEvent(InputEvents.DROP, event -> dropped.add(event.transfer()));
+        ((AnchorPanel) first.built.getFirst()).add(target);
+        root.host().layout();
+
+        root.mouseMoved(40, 50);
+        root.onFilesDrop(List.of(Path.of("ana.png"), Path.of("ben.png")));
+
+        assertEquals(1, dropped.size());
+        assertEquals(List.of(Path.of("ana.png"), Path.of("ben.png")), dropped.getFirst().get(DataFormat.FILES).orElseThrow());
+    }
+
+    @Test
     void theDensityIsTheGuiScale() {
         final Counting first = new Counting();
         this.show(first);
         final Probe probe = new Probe(first.handle.factory());
-        ((org.inspirenxe.strata.api.layout.AnchorPanel) first.built.getFirst()).add(probe);
+        ((AnchorPanel) first.built.getFirst()).add(probe);
 
         assertEquals(3f, probe.density());
     }
@@ -364,7 +388,7 @@ class StrataScreenStackTest {
     }
 
     /**
-     * A component that reads its environment's density.
+     * A component 100 by 100 that reads its environment's density.
      */
     private static final class Probe extends CustomComponent<Probe> {
         Probe(final ComponentFactory factory) {
@@ -377,7 +401,7 @@ class StrataScreenStackTest {
 
         @Override
         protected Size measure(final MeasureContext context, final float availableWidth, final float availableHeight) {
-            return Size.ZERO;
+            return new Size(100f, 100f);
         }
     }
 
