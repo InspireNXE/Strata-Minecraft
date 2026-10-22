@@ -26,7 +26,7 @@ Screens are written against Strata's API exactly as for any other engine, and op
 Strata.screens().open(new SettingsScreen());
 ```
 
-The adapter shows it in a vanilla `Screen` in the vanilla theme. Input Strata does not use goes on to vanilla, so Escape still closes the screen.
+The adapter shows it in a vanilla `Screen` in the vanilla theme, titled and narrated with the screen's title. Input Strata does not use goes on to vanilla, so Escape still closes the screen, once the screen's `closeRequested` agrees. Code on other threads, such as a network handler, hands its work to the client thread with `Strata.uiThread().execute(...)`.
 
 ## Using Strata in a mod
 
