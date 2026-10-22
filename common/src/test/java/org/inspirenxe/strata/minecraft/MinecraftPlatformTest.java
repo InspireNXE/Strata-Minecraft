@@ -18,12 +18,15 @@ package org.inspirenxe.strata.minecraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import org.inspirenxe.strata.api.input.Modifier;
+import org.inspirenxe.strata.spi.Conventions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.BooleanSupplier;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,6 +63,16 @@ class MinecraftPlatformTest {
         // Vanilla's execute would run the task at once on the client thread
         verify(this.minecraft).tell(task);
         verify(this.minecraft, never()).execute(any());
+    }
+
+    @Test
+    void conventionsFollowVanilla() {
+        final Conventions conventions = this.platform.conventions();
+
+        assertTrue(conventions.activateOnPress());
+        assertTrue(conventions.mnemonics());
+        assertEquals(Minecraft.ON_OSX ? Modifier.SUPER : Modifier.CONTROL,
+                conventions.shortcutModifier());
     }
 
     @Test

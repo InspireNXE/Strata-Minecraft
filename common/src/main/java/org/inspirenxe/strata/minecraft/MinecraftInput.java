@@ -31,9 +31,12 @@ import org.lwjgl.glfw.GLFW;
  * through the {@link InputConstants} names, or GLFW's where vanilla has none, and never through raw numbers. Keys
  * Strata has no key for (F13 to F25, the other keypad keys) map to {@link Key#UNKNOWN}.</p>
  *
- * <p>On macOS Minecraft treats Command as the edit-shortcut modifier. Strata reports Command as
- * {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}, so Strata's text box shortcuts use Control there
- * too.</p>
+ * <p>The context menu key maps to {@link Key#MENU}. Minecraft names no key code for it, so it is matched by GLFW's
+ * {@code GLFW_KEY_MENU}.</p>
+ *
+ * <p>Strata reports Command as {@link Modifier#SUPER} and Control as {@link Modifier#CONTROL}. On macOS, where
+ * Minecraft uses Command for its own edit shortcuts, {@link MinecraftPlatform} makes {@code SUPER} the shortcut
+ * modifier, so Strata's text fields and shortcuts use Command there too.</p>
  */
 public final class MinecraftInput {
 
@@ -65,12 +68,16 @@ public final class MinecraftInput {
 
     /**
      * Reads the modifiers held now from the game's window, for mouse input, which Minecraft 1.21.1 passes without
-     * them.
+     * them. Before the game exists nothing is held.
      *
      * @return the held modifiers
      */
     public static Modifiers heldModifiers() {
-        final long window = Minecraft.getInstance().getWindow().getWindow();
+        final Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null) {
+            return Modifiers.NONE;
+        }
+        final long window = minecraft.getWindow().getWindow();
         int bits = 0;
         if (InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT)) {
             bits |= GLFW.GLFW_MOD_SHIFT;
@@ -236,6 +243,8 @@ public final class MinecraftInput {
             case InputConstants.KEY_RALT -> Key.RIGHT_ALT;
             case InputConstants.KEY_LWIN -> Key.LEFT_SUPER;
             case InputConstants.KEY_RWIN -> Key.RIGHT_SUPER;
+            // Minecraft names no key code for the context menu key
+            case GLFW.GLFW_KEY_MENU -> Key.MENU;
             default -> Key.UNKNOWN;
         };
     }

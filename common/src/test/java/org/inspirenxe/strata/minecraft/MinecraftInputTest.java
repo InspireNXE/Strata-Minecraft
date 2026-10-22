@@ -83,6 +83,11 @@ class MinecraftInputTest {
     }
 
     @Test
+    void theContextMenuKeyIsTheMenuKey() {
+        assertEquals(Key.MENU, MinecraftInput.key(GLFW.GLFW_KEY_MENU));
+    }
+
+    @Test
     void mouseButtonsMap() {
         assertEquals(MouseButton.LEFT, MinecraftInput.button(InputConstants.MOUSE_BUTTON_LEFT));
         assertEquals(MouseButton.RIGHT, MinecraftInput.button(InputConstants.MOUSE_BUTTON_RIGHT));

@@ -82,9 +82,10 @@ import java.util.Objects;
  *     <li>Strata counts clicks itself and ignores vanilla's double-click flag.</li>
  *     <li>Scroll amounts already include the player's wheel sensitivity. Fractional amounts count as
  *     {@link ScrollKind#PRECISE}.</li>
- *     <li>Minecraft gives no modifiers with pointer presses, so the screen reads the held modifier keys from the
- *     window for presses and releases. It gives none with pointer moves, scrolls or typed characters either, and
- *     those report {@link Modifiers#NONE}.</li>
+ *     <li>Minecraft gives no modifiers with pointer presses, moves, scrolls or typed characters. Presses, releases,
+ *     moves and scrolls report the modifier keys held at the time, read from the window, so a Shift+wheel scrolls
+ *     sideways. Typed characters report {@link Modifiers#NONE}, since some layouts type characters with Control and
+ *     Alt held.</li>
  *     <li>Minecraft passes a character outside the Basic Multilingual Plane as two {@code char}s; the screen joins
  *     them into one code point.</li>
  *     <li>Whether the game pauses behind the screen follows vanilla's {@link #isPauseScreen()}; override it to
@@ -438,7 +439,7 @@ public class StrataScreen extends Screen {
 
     @Override
     public void mouseMoved(final double x, final double y) {
-        this.host.pointerMoved((float) x, (float) y, Modifiers.NONE);
+        this.host.pointerMoved((float) x, (float) y, MinecraftInput.heldModifiers());
     }
 
     @Override
@@ -456,7 +457,7 @@ public class StrataScreen extends Screen {
     @Override
     public boolean mouseScrolled(final double x, final double y, final double scrollX, final double scrollY) {
         return this.host.scroll((float) x, (float) y, MinecraftInput.scrollX(scrollX), (float) scrollY,
-                MinecraftInput.scrollKind(scrollX, scrollY), Modifiers.NONE)
+                MinecraftInput.scrollKind(scrollX, scrollY), MinecraftInput.heldModifiers())
                 || super.mouseScrolled(x, y, scrollX, scrollY);
     }
 
