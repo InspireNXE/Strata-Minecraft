@@ -50,6 +50,7 @@ import org.lwjgl.opengl.GL11;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,6 +89,10 @@ import java.util.function.Function;
  *     <li>Item visuals draw with vanilla's GUI item rendering under a pose scaled to the rectangle. Player face
  *     visuals draw the face and hat from the skin texture, stretched over the rectangle snapped to whole pixels and
  *     tinted. Visuals made elsewhere draw as a magenta placeholder.</li>
+ *     <li>{@link #pushOpacity(float)} multiplies the alpha of every later fill, gradient, text color, sprite and
+ *     nine-slice tint, slot icon and player face's tint, so a fading component fades with what it draws. Item
+ *     visuals are rendered by the game's item renderer, which takes no color, so items do not fade: they stay opaque
+ *     until the component stops drawing them.</li>
  *     <li>1.20.1 has no cursor API, so cursors are set on the window through GLFW's standard cursors. A cursor the
  *     system lacks shows as the arrow.</li>
  * </ul>
@@ -120,6 +125,10 @@ public final class MinecraftCanvas implements Canvas {
     private GuiGraphics graphics;
     private float pixelsPerUnit = 1f;
     private CursorKind cursor;
+    // The opacity in force, and the ones pushed beneath it; the array grows, so painting allocates nothing once warm
+    private float opacity = 1f;
+    private float[] opacities = new float[8];
+    private int opacityDepth;
 
     /**
      * Creates a canvas.
@@ -173,6 +182,8 @@ public final class MinecraftCanvas implements Canvas {
         this.graphics = graphics;
         this.pixelsPerUnit = pixelsPerUnit;
         this.cursor = CursorKind.ARROW;
+        this.opacity = 1f;
+        this.opacityDepth = 0;
     }
 
     /**
@@ -201,24 +212,27 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void fill(final Rect rect, final int argb) {
-        if ((argb >>> 24) == 0) {
+        final int color = this.faded(argb);
+        if ((color >>> 24) == 0) {
             return;
         }
         if (this.isFine(rect)) {
-            this.fillFine(rect, argb, argb);
+            this.fillFine(rect, color, color);
             return;
         }
-        this.graphics.fill(RenderType.guiOverlay(), left(rect), top(rect), right(rect), bottom(rect), argb);
+        this.graphics.fill(RenderType.guiOverlay(), left(rect), top(rect), right(rect), bottom(rect), color);
     }
 
     @Override
     public void fillGradient(final Rect rect, final int topArgb, final int bottomArgb) {
+        final int top = this.faded(topArgb);
+        final int bottom = this.faded(bottomArgb);
         if (this.isFine(rect)) {
-            this.fillFine(rect, topArgb, bottomArgb);
+            this.fillFine(rect, top, bottom);
             return;
         }
         this.graphics.fillGradient(RenderType.guiOverlay(), left(rect), top(rect), right(rect), bottom(rect),
-                topArgb, bottomArgb, 0);
+                top, bottom, 0);
     }
 
     /**
@@ -258,12 +272,13 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void sprite(final SpriteId sprite, final Rect rect, final int tint) {
-        if ((tint >>> 24) == 0) {
+        final int color = this.faded(tint);
+        if ((color >>> 24) == 0) {
             return;
         }
         final VanillaSprites.Sprite kept = VanillaSprites.of(sprite).orElse(null);
         if (kept instanceof final Fills fills) {
-            this.fills(fills, rect, tint);
+            this.fills(fills, rect, color);
             return;
         }
         final int x = left(rect);
@@ -273,7 +288,7 @@ public final class MinecraftCanvas implements Canvas {
         if (width <= 0 || height <= 0) {
             return;
         }
-        this.beginTint(tint);
+        this.beginTint(color);
         try {
             if (kept instanceof final Region region) {
                 this.drawRegion(region, x, y, width, height);
@@ -282,7 +297,7 @@ public final class MinecraftCanvas implements Canvas {
                 this.graphics.blit(this.texture(sprite), x, y, width, height, 0f, 0f, 1, 1, 1, 1);
             }
         } finally {
-            this.endTint(tint);
+            this.endTint(color);
         }
     }
 
@@ -295,7 +310,8 @@ public final class MinecraftCanvas implements Canvas {
             this.sprite(sprite, rect, tint);
             return;
         }
-        if ((tint >>> 24) == 0) {
+        final int color = this.faded(tint);
+        if ((color >>> 24) == 0) {
             return;
         }
         final int x = left(rect);
@@ -337,7 +353,7 @@ public final class MinecraftCanvas implements Canvas {
         }
         final int[] columns = slices(Math.round(border.left()), Math.round(border.right()), sourceWidth, width);
         final int[] rows = slices(Math.round(border.top()), Math.round(border.bottom()), sourceHeight, height);
-        this.beginTint(tint);
+        this.beginTint(color);
         try {
             int sourceY = v;
             int destY = y;
@@ -356,7 +372,7 @@ public final class MinecraftCanvas implements Canvas {
                 destY += rows[row + 3];
             }
         } finally {
-            this.endTint(tint);
+            this.endTint(color);
         }
     }
 
@@ -412,11 +428,12 @@ public final class MinecraftCanvas implements Canvas {
 
     @Override
     public void text(final TextSpan span, final float x, final float y) {
-        if ((span.style().color() >>> 24) == 0 || span.text().isEmpty()) {
+        final int color = this.faded(span.style().color());
+        if ((color >>> 24) == 0 || span.text().isEmpty()) {
             return;
         }
         this.graphics.drawString(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x),
-                Math.round(y), span.style().color(), span.style().shadow());
+                Math.round(y), color, span.style().shadow());
     }
 
     @Override
@@ -456,15 +473,42 @@ public final class MinecraftCanvas implements Canvas {
     }
 
     @Override
+    public void pushOpacity(final float opacity) {
+        if (this.opacityDepth == this.opacities.length) {
+            this.opacities = Arrays.copyOf(this.opacities, this.opacities.length * 2);
+        }
+        this.opacities[this.opacityDepth++] = this.opacity;
+        this.opacity *= opacity;
+    }
+
+    @Override
+    public void popOpacity() {
+        if (this.opacityDepth > 0) {
+            this.opacity = this.opacities[--this.opacityDepth];
+        }
+    }
+
+    /**
+     * Returns a color with its alpha multiplied by the opacity in force.
+     */
+    private int faded(final int argb) {
+        if (this.opacity >= 1f) {
+            return argb;
+        }
+        final int alpha = Math.round((argb >>> 24) * this.opacity);
+        return (alpha << 24) | (argb & 0xFFFFFF);
+    }
+
+    @Override
     public void visual(final Visual visual, final Rect rect, final int tint) {
         if (visual instanceof final ItemVisual item) {
             this.item(item.stack(), item.decorations(), item.seed(), rect, tint);
         } else if (visual instanceof final ProfileFaceVisual face) {
-            this.playerFace(this.skins.apply(face.profile()), face.hat(), rect, tint);
+            this.playerFace(this.skins.apply(face.profile()), face.hat(), rect, this.faded(tint));
         } else if (visual instanceof final SkinFaceVisual face) {
-            this.playerFace(face.texture(), face.hat(), rect, tint);
+            this.playerFace(face.texture(), face.hat(), rect, this.faded(tint));
         } else if (visual instanceof final AtlasSpriteVisual sprite) {
-            this.atlasSprite(sprite, rect, tint);
+            this.atlasSprite(sprite, rect, this.faded(tint));
         } else {
             this.fill(rect, MISSING_VISUAL_COLOR);
         }
