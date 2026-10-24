@@ -26,6 +26,7 @@ import org.inspirenxe.strata.spi.Capabilities;
 import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
 import org.inspirenxe.strata.spi.Platform;
+import org.inspirenxe.strata.spi.Scheduler;
 import org.inspirenxe.strata.spi.TextInputSink;
 import org.inspirenxe.strata.spi.ThemeSource;
 
@@ -121,6 +122,11 @@ final class MinecraftScreens implements ScreenController {
         @Override
         public TextMetrics textMetrics() {
             throw new UnsupportedOperationException(SCREENS_ONLY);
+        }
+
+        @Override
+        public Scheduler scheduler() {
+            return StrataMinecraft.scheduler();
         }
 
         @Override

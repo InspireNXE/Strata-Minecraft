@@ -271,6 +271,16 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
         }
     }
 
+    /**
+     * Counts the client tick for the {@link MinecraftScheduler}, which runs screens' repeating tasks where Sponge's
+     * scheduler does not.
+     */
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        StrataMinecraft.tick();
+    }
+
     @Override
     public void removed() {
         if (this.host != null) {

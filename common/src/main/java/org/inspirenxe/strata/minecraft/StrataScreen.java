@@ -22,6 +22,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.event.Subscription;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.KeyAction;
 import org.inspirenxe.strata.api.input.Modifiers;
@@ -293,6 +294,16 @@ public class StrataScreen extends Screen {
     @Override
     public Component getTitle() {
         return this.hostTitle.get(this.host, super.getTitle());
+    }
+
+    /**
+     * Counts the client tick for the {@link MinecraftScheduler}, which runs screens' repeating tasks where Sponge's
+     * scheduler does not.
+     */
+    @Override
+    public void tick() {
+        super.tick();
+        StrataMinecraft.tick();
     }
 
     @Override
@@ -596,6 +607,18 @@ public class StrataScreen extends Screen {
                 StrataScreen.this.host.handle().ifPresent(handle -> handle.setTitle(title));
             }
             return this;
+        }
+
+        @Override
+        public Subscription every(final long millis, final Runnable task) {
+            Objects.requireNonNull(task, "task");
+            if (millis <= 0L) {
+                throw new IllegalArgumentException("A task's interval must be above 0 ms: " + millis);
+            }
+            if (StrataScreen.this.host == null) {
+                return () -> { };
+            }
+            return StrataScreen.this.host.handle().map(handle -> handle.every(millis, task)).orElse(() -> { });
         }
 
         @Override
