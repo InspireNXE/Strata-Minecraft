@@ -34,4 +34,5 @@ dependencies {
     // The tests run the Sponge-backed stack over a stand-in for Sponge's manager
     testImplementation("org.spongepowered:spongeapi:${sponge_api_version}")
     testImplementation("org.inspirenxe:strata-api:${strata_version}")
+    testImplementation("org.inspirenxe:strata-spi:${strata_version}")
 }

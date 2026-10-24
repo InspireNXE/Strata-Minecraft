@@ -16,12 +16,14 @@
 package org.inspirenxe.strata.minecraft;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSink;
 import net.minecraft.util.StringDecomposer;
+import org.inspirenxe.strata.api.text.FontId;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
@@ -181,7 +183,17 @@ public final class MinecraftText {
         final TextColor color = style.getColor();
         final int argb = color == null ? base.color() : (base.color() & 0xFF000000) | (color.getValue() & 0xFFFFFF);
         return new TextStyle(argb, style.isBold(), style.isItalic(), style.isUnderlined(), style.isStrikethrough(),
-                base.shadow(), base.monospace());
+                base.shadow(), base.monospace(), MinecraftText.font(style.getFont(), base.font()), base.size());
+    }
+
+    /**
+     * Returns the Strata font of a vanilla font: its id for a font other than the default, else the base's.
+     */
+    private static FontId font(final FontDescription font, final FontId base) {
+        if (font instanceof final FontDescription.Resource resource && !resource.equals(FontDescription.DEFAULT)) {
+            return FontId.of(resource.id().getNamespace(), resource.id().getPath());
+        }
+        return base;
     }
 
     /**

@@ -22,8 +22,9 @@ import org.inspirenxe.strata.minecraft.StrataMinecraft;
  * SpongeVanilla plugin calls {@link #install()} when Sponge constructs it, and the NeoForge mod calls it in place of
  * {@link StrataMinecraft#install()} when NeoForge reports SpongeAPI loaded.
  *
- * <p>This is where Strata-Minecraft hands Strata the parts Sponge implements in place of Strata's defaults. Today that
- * is the cause stack: Strata's causes are backed by Sponge's, through {@link SpongeCauseStack}.</p>
+ * <p>This is where Strata-Minecraft hands Strata the parts Sponge implements in place of Strata's defaults: Strata's
+ * causes are backed by Sponge's, through {@link SpongeCauseStack}, and screens' repeating tasks run on Sponge's
+ * client scheduler, through {@link SpongeScheduler}.</p>
  */
 public final class StrataSponge {
 
@@ -36,6 +37,6 @@ public final class StrataSponge {
      * so it may run before Sponge's client exists.
      */
     public static void install() {
-        StrataMinecraft.install(new SpongeCauseStack());
+        StrataMinecraft.install(new SpongeCauseStack(), new SpongeScheduler(StrataMinecraft.scheduler()));
     }
 }

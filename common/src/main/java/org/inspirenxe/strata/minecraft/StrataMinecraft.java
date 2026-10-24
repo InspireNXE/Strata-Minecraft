@@ -17,20 +17,23 @@ package org.inspirenxe.strata.minecraft;
 
 import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.event.cause.CauseStack;
+import org.inspirenxe.strata.spi.Scheduler;
 import org.inspirenxe.strata.core.StrataCore;
 
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Starts Strata-Minecraft. The loaders' entry points call {@link #install()}, or {@link #install(CauseStack)} with
- * Sponge's cause stack where Sponge is present, when the mod or plugin loads, so mods never need to.
+ * Starts Strata-Minecraft. The loaders' entry points call {@link #install()}, or
+ * {@link #install(CauseStack, Scheduler)} with Sponge's cause stack and scheduler where Sponge is present, when the mod
+ * or plugin loads, so mods never need to.
  */
 public final class StrataMinecraft {
     private static final System.Logger LOGGER = System.getLogger(StrataMinecraft.class.getName());
 
     private static boolean installed;
     private static volatile CauseStack causes;
+    private static volatile Scheduler scheduler = MinecraftScheduler.INSTANCE;
 
     private StrataMinecraft() {
     }
@@ -50,29 +53,49 @@ public final class StrataMinecraft {
     }
 
     /**
-     * Starts Strata-Minecraft as {@link #install()} does, with the engine's own cause stack, which every
-     * {@link MinecraftPlatform} then hands Strata, so hosts push their input frames on it and events read their
-     * causes from it. The Sponge entry points call this with a stack backed by Sponge's. Only the first call to either
-     * method does anything.
+     * Starts Strata-Minecraft as {@link #install()} does, with the engine's own cause stack and scheduler, which every
+     * {@link MinecraftPlatform} then hands Strata: hosts push their input frames on the stack and events read their
+     * causes from it, and screens' repeating tasks run from the scheduler. The Sponge entry points call this with
+     * Sponge's. Only the first call to either method does anything.
      *
      * @param causes the cause stack
+     * @param scheduler the scheduler; it must run tasks on the client thread
      */
-    public static synchronized void install(final CauseStack causes) {
+    public static synchronized void install(final CauseStack causes, final Scheduler scheduler) {
         if (installed) {
             return;
         }
         installed = true;
         StrataMinecraft.causes = Objects.requireNonNull(causes, "causes");
+        StrataMinecraft.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         StrataMinecraft.start();
     }
 
     /**
      * Returns the cause stack Strata-Minecraft was started with.
      *
-     * @return the stack given to {@link #install(CauseStack)}, or empty when Strata's own is used
+     * @return the stack given to {@link #install(CauseStack, Scheduler)}, or empty when Strata's own is used
      */
     public static Optional<CauseStack> causes() {
         return Optional.ofNullable(StrataMinecraft.causes);
+    }
+
+    /**
+     * Returns the scheduler screens' repeating tasks run from.
+     *
+     * @return the scheduler given to {@link #install(CauseStack, Scheduler)}, or the {@link MinecraftScheduler} on the
+     *     client tick
+     */
+    public static Scheduler scheduler() {
+        return StrataMinecraft.scheduler;
+    }
+
+    /**
+     * Counts a client tick for the {@link MinecraftScheduler}. The Strata screen the game shows calls it on each of
+     * its ticks.
+     */
+    static void tick() {
+        MinecraftScheduler.INSTANCE.tick();
     }
 
     private static void start() {

@@ -259,8 +259,25 @@ public final class MinecraftCanvas implements Canvas {
         if ((color >>> 24) == 0 || span.text().isEmpty()) {
             return;
         }
-        this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x), Math.round(y),
-                color, span.style().shadow());
+        final float scale = MinecraftTextMetrics.scale(span.style());
+        if (scale == 1f) {
+            this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), Math.round(x), Math.round(y),
+                    color, span.style().shadow());
+            return;
+        }
+        // Another size draws vanilla's text under a scale, as vanilla scales its own titles
+        this.pushTranslation(Math.round(x), Math.round(y));
+        try {
+            this.pushScale(scale);
+            try {
+                this.graphics.text(this.textMetrics.font(), this.textMetrics.component(span), 0, 0, color,
+                        span.style().shadow());
+            } finally {
+                this.popTransform();
+            }
+        } finally {
+            this.popTransform();
+        }
     }
 
     @Override

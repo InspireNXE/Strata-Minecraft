@@ -26,6 +26,7 @@ import org.inspirenxe.strata.spi.Clipboard;
 import org.inspirenxe.strata.spi.Clock;
 import org.inspirenxe.strata.spi.Conventions;
 import org.inspirenxe.strata.spi.Platform;
+import org.inspirenxe.strata.spi.Scheduler;
 import org.inspirenxe.strata.spi.TextInputSink;
 import org.inspirenxe.strata.spi.ThemeSource;
 
@@ -52,8 +53,11 @@ import java.util.function.BooleanSupplier;
  *     use: Command ({@link Modifier#SUPER}) on macOS and Control elsewhere. Mnemonics are on: vanilla binds nothing
  *     to Alt, so Alt with a letter and Alt alone reach Strata's menus and buttons.</li>
  *     <li>Themes named by id come from the game's {@link MinecraftThemeSource}, which reads resource packs.</li>
- *     <li>The cause stack is the one {@link StrataMinecraft#install(CauseStack)} was given, such as Sponge's, or
- *     Strata's own when it was started without one.</li>
+ *     <li>The cause stack is the one {@link StrataMinecraft#install(CauseStack, Scheduler)} was given, such as
+ *     Sponge's, or Strata's own when it was started without one.</li>
+ *     <li>Repeating tasks run from the scheduler {@link StrataMinecraft#install(CauseStack, Scheduler)} was given,
+ *     Sponge's client scheduler where Sponge is present, or else the {@link MinecraftScheduler} on the client tick.
+ *     Either rounds an interval up to whole ticks of 50 ms.</li>
  *     <li>The user is the local player's profile, vanilla's {@code Minecraft.getGameProfile()}, so every
  *     {@code Origin.User} carries a {@code GameProfile}.</li>
  *     <li>The UI thread is the client thread, the game's render thread. Tasks handed to it are queued on the game's
@@ -122,6 +126,11 @@ public final class MinecraftPlatform implements Platform {
     @Override
     public MinecraftTextMetrics textMetrics() {
         return this.textMetrics;
+    }
+
+    @Override
+    public Scheduler scheduler() {
+        return StrataMinecraft.scheduler();
     }
 
     @Override
