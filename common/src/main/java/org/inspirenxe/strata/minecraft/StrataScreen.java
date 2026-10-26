@@ -257,6 +257,7 @@ public class StrataScreen extends Screen {
                     ? StrataCore.createScreenHost(platform, this.themeRef, this::closeFromHandle)
                     : StrataCore.createScreenHost(platform, this.theme, this::closeFromHandle);
             this.host.setOpener(this::openAbove);
+            this.host.setSpriteSizes(new MinecraftSpriteSizes(this.minecraft));
         }
         return this.host;
     }
@@ -457,6 +458,8 @@ public class StrataScreen extends Screen {
         this.pointerX = mouseX;
         this.pointerY = mouseY;
         super.render(graphics, mouseX, mouseY, a);
+        // Focus leaves while the game window is in the background, and comes back with it
+        this.host.activeChanged(this.minecraft.isWindowActive());
         this.canvas.begin(graphics, MinecraftPlatform.pixelsPerUnit(this.minecraft));
         this.host.render(this.canvas);
         this.canvas.end();
