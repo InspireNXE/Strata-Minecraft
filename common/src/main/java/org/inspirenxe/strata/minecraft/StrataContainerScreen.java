@@ -226,6 +226,7 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
                     ? StrataCore.createScreenHost(platform, this.themeRef, this::closeAgreed)
                     : StrataCore.createScreenHost(platform, this.theme, this::closeAgreed);
             this.host.setPixelsPerUnit(MinecraftPlatform.pixelsPerUnit(this.minecraft));
+            this.host.setSpriteSizes(new MinecraftSpriteSizes(this.minecraft));
             this.host.resize(this.width, this.height);
             this.host.open(factory -> {
                 this.panel = new MenuPanel(factory, this.owner);
@@ -309,6 +310,8 @@ public class StrataContainerScreen<M extends AbstractContainerMenu> extends Abst
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
         this.placeMenu(false);
+        // Focus leaves while the game window is in the background, and comes back with it
+        this.host.activeChanged(this.minecraft.isWindowActive());
         this.frameGraphics = graphics;
         this.frameMouseX = mouseX;
         this.frameMouseY = mouseY;
