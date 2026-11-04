@@ -230,6 +230,8 @@
     "table.header.padding": [4, 6, 4, 5]
   },
   "metrics": {
+    "grid.cell.size": 18,
+    "grid.spacing": 0,
     "button.text.scroll": 500,
     "button.text.scroll.minimum": 3000,
     "tab.text.scroll": 500,
